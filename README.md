@@ -1,5 +1,7 @@
 # msgpack-nodejs
 
+This implementation follows [MsgPack Spec](https://github.com/msgpack/msgpack/blob/master/spec.md).
+
 ## Prerequisites
 
 1. Node.js
