@@ -1,0 +1,31 @@
+{
+  "name": "msgpack-nodejs",
+  "version": "1.0.0",
+  "description": "Node.js implementation of MessagePack encoder/decoder",
+  "main": "index.js",
+  "directories": {
+    "test": "test"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "eslint": "^8.30.0",
+    "eslint-config-airbnb-base": "^15.0.0",
+    "eslint-plugin-import": "^2.26.0",
+    "husky": "^8.0.2",
+    "mocha": "^10.2.0"
+  },
+  "scripts": {
+    "test": "mocha",
+    "prepare": "husky install"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/artyomliou/msgpack-nodejs.git"
+  },
+  "author": "Artyom Liou",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/artyomliou/msgpack-nodejs/issues"
+  },
+  "homepage": "https://github.com/artyomliou/msgpack-nodejs#readme"
+}
