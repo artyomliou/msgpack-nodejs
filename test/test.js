@@ -84,27 +84,38 @@ describe('Serializer', () => {
       assert.deepEqual(serialize(1.1), Buffer.from([ FLOAT64_PREFIX, 0x3f, 0xf1, 0x99, 0x99, 0x99, 0x99, 0x99, 0x9a, ]));
     });
 
-    // it('str', () => {
-    //   assert(serialize(null).equals(Buffer.from([])));
-    // });
+    it('str fixstr', () => {
+      assert.deepEqual(serialize('a'), Buffer.from([ 0b10100001, 0x61 ]));
+    });
+    it('str str 8', () => {
+      const actual = serialize('01234567890123456789012345678901');
+      const expected = Buffer.from([ STR8_PREFIX, 32, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31 ]);
+      assert.deepEqual(actual, expected);
+    });
+    // TODO str 16: serialize(deserialize)
+    // TODO str 32: serialize(deserialize)
 
-    // it('bin', () => {
-    //   assert(serialize(null).equals(Buffer.from([])));
-    // });
+    // TODO bin 8: serialize(deserialize)
+    // TODO bin 16: serialize(deserialize)
+    // TODO bin 32: serialize(deserialize)
 
-    // it('array', () => {
-    //   assert(serialize(null).equals(Buffer.from([])));
-    // });
+    it('array', () => {
+      assert.deepEqual(serialize([]), Buffer.from([ 0x90 ]));
+    });
+    // TODO array 16: serialize(deserialize)
+    // TODO array 32: serialize(deserialize)
 
-    // it('map', () => {
-    //   assert(serialize(null).equals(Buffer.from([])));
-    // });
+    it('map', () => {
+      assert.deepEqual(serialize({}), Buffer.from([ 0x80 ]));
+    });
+    // TODO map 16: serialize(deserialize)
+    // TODO map 32: serialize(deserialize)
 
     // TODO ext
     // TODO timestamp
   })
 
-  describe('Object', () => {
+  describe('Complex', () => {
     it('"{"compact":true,"schema":0}"', () => {
       const obj = {
         compact: true,
@@ -133,8 +144,4 @@ describe('Serializer', () => {
       ]));
     });
   });
-
-  describe('Array', () => {})
-
-  describe('Complex', () => {})
 });
