@@ -1,34 +1,38 @@
 const ByteArray = require('./ByteArray');
+const {
+  NIL,
+  BOOL_FALSE,
+  BOOL_TRUE,
+  BIN8_PREFIX,
+  BIN16_PREFIX,
+  BIN32_PREFIX,
+  // EXT8_PREFIX,
+  // EXT16_PREFIX,
+  // EXT32_PREFIX,
+  // FLOAT32_PREFIX,
+  FLOAT64_PREFIX,
+  UINT8_PREFIX,
+  UINT16_PREFIX,
+  UINT32_PREFIX,
+  UINT64_PREFIX,
+  INT8_PREFIX,
+  INT16_PREFIX,
+  INT32_PREFIX,
+  INT64_PREFIX,
+  // FINEXT1_PREFIX,
+  // FINEXT2_PREFIX,
+  // FINEXT4_PREFIX,
+  // FINEXT8_PREFIX,
+  // FINEXT16_PREFIX,
+  STR8_PREFIX,
+  STR16_PREFIX,
+  STR32_PREFIX,
+  ARRAY16_PREFIX,
+  ARRAY32_PREFIX,
+  MAP16_PREFIX,
+  MAP32_PREFIX,
+} = require('./constants');
 
-const NIL = 0xc0;
-const BOOL_FALSE = 0xc2;
-const BOOL_TRUE = 0xc3;
-const BIN8_PREFIX = 0xc4;
-const BIN16_PREFIX = 0xc5;
-const BIN32_PREFIX = 0xc6;
-const EXT8_PREFIX = 0xc7;
-const EXT16_PREFIX = 0xc8;
-const EXT32_PREFIX = 0xc9;
-const UINT8_PREFIX = 0xcc;
-const UINT16_PREFIX = 0xcd;
-const UINT32_PREFIX = 0xce;
-const UINT64_PREFIX = 0xcf;
-const INT8_PREFIX = 0xd0;
-const INT16_PREFIX = 0xd1;
-const INT32_PREFIX = 0xd2;
-const INT64_PREFIX = 0xd3;
-const FIXEXT1_PREFIX = 0xd4;
-const FIXEXT2_PREFIX = 0xd5;
-const FIXEXT4_PREFIX = 0xd6;
-const FIXEXT8_PREFIX = 0xd7;
-const FIXEXT16_PREFIX = 0xd8;
-const STR8_PREFIX = 0xd9;
-const STR16_PREFIX = 0xda;
-const STR32_PREFIX = 0xdb;
-const ARRAY16_PREFIX = 0xdc;
-const ARRAY32_PREFIX = 0xdd;
-const MAP16_PREFIX = 0xde;
-const MAP32_PREFIX = 0xdf;
 
 /**
  * @param {Object} srcObject
@@ -45,49 +49,72 @@ module.exports = function messagePackSerialize(srcObject) {
  * @returns 
  */
 function match(byteArray, val) {
-  const type = typeof val;
+  switch (typeof val) {
+    case 'boolean':
+      handleBoolean(byteArray, val);
+      break;
 
-  if (val === null) {
-    byteArray.writeUint8(NIL);
-
-  } else if (type == 'boolean') {
-    if (val) {
-      byteArray.writeUint8(BOOL_TRUE);
-    } else {
-      byteArray.writeUint8(BOOL_FALSE);
-    }
-
-  } else if (type == 'number' || type == 'bigint') {
-    if (Number.isInteger(val)) {
+    case 'bigint':
       handleInteger(byteArray, val);
-    } else {
-      handleFloat(byteArray, val);
-    }
-  } else if (type == 'string') {
-    handleString(byteArray, val);
+      break;
+    
+    case 'number':
+      if (Number.isInteger(val)) {
+        handleInteger(byteArray, val);
+      } else {
+        handleFloat(byteArray, val);
+      }
+      break;
+    
+    case 'string':
+      handleString(byteArray, val);
+      break;
 
-  } else if (Buffer.isBuffer(val)) {
-    handleBuffer(byteArray, val);
+    case 'object':
+      if (val === null) {
+        byteArray.writeUint8(NIL);
+        break;
+      }
+      if (Buffer.isBuffer(val)) {
+        handleBuffer(byteArray, val);
+        break;
+      }
+      if (Array.isArray(val)) {
+        handleArray(byteArray, val);
+        for (const element of val) {
+          match(byteArray, element)
+        }
+        break;
+      }
 
-  } else if (Array.isArray(val)) {
-    handleArray(byteArray, val);
-    for (const element of val) {
-      match(byteArray, element)
-    }
-
-  } else if (type == 'object') {
-    handleMap(byteArray, val);
-    for (const [k, v] of Object.entries(val)) {
-      handleString(byteArray, k);
-      match(byteArray, v)
-    }
-
-  } else {
-    console.debug('noop', val);
-    // TODO No support for Symbol, Function, Undefined
+      // Handling typical object
+      handleMap(byteArray, val);
+      for (const [k, v] of Object.entries(val)) {
+        handleString(byteArray, k);
+        match(byteArray, v)
+      }
+      break;
+  
+    default:
+      console.debug('noop', val);
+      // TODO No support for Symbol, Function, Undefined
+      break;
   }
   // TODO ext
   // TODO timestamp
+}
+
+/**
+ * @param {ByteArray} byteArray
+ * @param {Number} number
+ * @returns 
+ */
+function handleBoolean(byteArray, val = true) {
+  if (val) {
+    byteArray.writeUint8(BOOL_TRUE);
+  } else {
+    byteArray.writeUint8(BOOL_FALSE);
+  }
 }
 
 /**
@@ -117,20 +144,18 @@ function handleInteger(byteArray, number = 0) {
       return;
     }
     if (number <= 0xFFFF) {
-      byteArray.writeUint16(UINT16_PREFIX);
+      byteArray.writeUint8(UINT16_PREFIX);
       byteArray.writeUint16(number);
       return;
     }
-    if (number <= 0xFFFFFF) {
-      byteArray.writeUint32(UINT32_PREFIX);
+    if (number <= 0xFFFFFFFF) {
+      byteArray.writeUint8(UINT32_PREFIX);
       byteArray.writeUint32(number);
       return;
     }
-    if (number <= 0xFFFFFFFF) {
-      byteArray.writeUint64(UINT64_PREFIX);
-      byteArray.writeUint64(number);
-      return;
-    }
+    byteArray.writeUint8(UINT64_PREFIX);
+    byteArray.writeUint64(number);
+    return;
   }
 
   // signed
@@ -141,20 +166,18 @@ function handleInteger(byteArray, number = 0) {
       return;
     }
     if (-number <= 0xFFFF) {
-      byteArray.writeInt16(INT16_PREFIX);
+      byteArray.writeUint8(INT16_PREFIX);
       byteArray.writeInt16(number);
       return;
     }
-    if (-number <= 0xFFFFFF) {
-      byteArray.writeInt32(INT32_PREFIX);
+    if (-number <= 0xFFFFFFFF) {
+      byteArray.writeUint8(INT32_PREFIX);
       byteArray.writeInt32(number);
       return;
     }
-    if (-number <= 0xFFFFFFFF) {
-      byteArray.writeInt64(INT64_PREFIX);
-      byteArray.writeInt64(number);
-      return;
-    }
+    byteArray.writeUint8(INT64_PREFIX);
+    byteArray.writeInt64(number);
+    return;
   }
 }
 
@@ -164,7 +187,8 @@ function handleInteger(byteArray, number = 0) {
  * @returns 
  */
 function handleFloat(byteArray, number = 0) {
-  // TODO 32bit float
+  // Since all float in Javascript is double, it's not possible to have FLOAT32 type.
+  byteArray.writeUint8(FLOAT64_PREFIX);
   byteArray.writeFloat64(number);
 }
 

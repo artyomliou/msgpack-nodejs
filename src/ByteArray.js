@@ -11,47 +11,61 @@ module.exports = class ByteArray {
     return Buffer.concat(this.#buffers);
   }
 
+  writeBuffer(buffer) {
+    this.#buffers.push(buffer);
+  }
+
   writeUint8(number) {
-    this.#buffers.push(Uint8Array.from([number]));
+    const buf = new ArrayBuffer(1);
+    (new DataView(buf)).setUint8(0, number);
+    this.#buffers.push(new Uint8Array(buf));
   }
 
   writeUint16(number) {
-    this.#buffers.push(Uint16Array.from([number]));
+    const buf = new ArrayBuffer(2);
+    (new DataView(buf)).setUint16(0, number, false);
+    this.#buffers.push(new Uint8Array(buf));
   }
 
   writeUint32(number) {
-    this.#buffers.push(Uint32Array.from([number]));
+    const buf = new ArrayBuffer(4);
+    (new DataView(buf)).setUint32(0, number, false);
+    this.#buffers.push(new Uint8Array(buf));
   }
 
   writeUint64(number) {
-    this.#buffers.push(BigUint64Array.from([number]));
+    const buf = new ArrayBuffer(8);
+    (new DataView(buf)).setBigUint64(0, number, false);
+    this.#buffers.push(new Uint8Array(buf));
   }
 
   writeInt8(number) {
-    this.#buffers.push(Int8Array.from([number]));
+    const buf = new ArrayBuffer(1);
+    (new DataView(buf)).setInt8(0, number);
+    this.#buffers.push(new Uint8Array(buf));
   }
 
   writeInt16(number) {
-    this.#buffers.push(Int16Array.from([number]));
+    const buf = new ArrayBuffer(2);
+    (new DataView(buf)).setInt16(0, number, false);
+    this.#buffers.push(new Uint8Array(buf));
   }
 
   writeInt32(number) {
-    this.#buffers.push(Int32Array.from([number]));
+    const buf = new ArrayBuffer(4);
+    (new DataView(buf)).setInt32(0, number, false);
+    this.#buffers.push(new Uint8Array(buf));
   }
 
   writeInt64(number) {
-    this.#buffers.push(BigInt64Array.from([number]));
-  }
-
-  writeFloat32(number) {
-    this.#buffers.push(Float32Array.from([number]));
+    const buf = new ArrayBuffer(8);
+    (new DataView(buf)).setBigInt64(0, number, false);
+    this.#buffers.push(new Uint8Array(buf));
   }
 
   writeFloat64(number) {
-    this.#buffers.push(Float64Array.from([number]));
-  }
-
-  writeBuffer(buffer) {
-    this.#buffers.push(buffer);
+    const buf = new ArrayBuffer(8);
+    (new DataView(buf)).setFloat64(0, number, false);
+    this.#buffers.push(new Uint8Array(buf));
   }
 }
