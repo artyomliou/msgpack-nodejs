@@ -68,5 +68,7 @@ deserialize(Buffer.from(buf));
 ```
 
 ## Limitation
-- Does not support float 32, because Javascript float is always 64-bit.
 - Ext family does not have complete test cases for now.
+- Does not support float 32, because Javascript float is always 64-bit.
+- Does not support stream
+- Does not run on browser
