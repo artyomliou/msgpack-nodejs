@@ -36,11 +36,17 @@ const {
 
 /**
  * @param {Object} srcObject
+ * @param {boolean} debug
  */
-module.exports = function messagePackSerialize(srcObject) {
+module.exports = function messagePackSerialize(srcObject, debug = false) {
   let byteArray = new ByteArray();
   match(byteArray, srcObject);
-  return byteArray.getBuffer();
+  
+  const buffer = byteArray.getBuffer();
+  if (debug) {
+    console.debug(buffer);
+  }
+  return buffer;
 };
 
 /**

@@ -1,147 +1,239 @@
 const assert = require('assert');
-const { serialize } = require('../index');
-const {
-  NIL,
-  BOOL_FALSE,
-  BOOL_TRUE,
-  BIN8_PREFIX,
-  BIN16_PREFIX,
-  BIN32_PREFIX,
-  // EXT8_PREFIX,
-  // EXT16_PREFIX,
-  // EXT32_PREFIX,
-  // FLOAT32_PREFIX,
-  FLOAT64_PREFIX,
-  UINT8_PREFIX,
-  UINT16_PREFIX,
-  UINT32_PREFIX,
-  UINT64_PREFIX,
-  INT8_PREFIX,
-  INT16_PREFIX,
-  INT32_PREFIX,
-  INT64_PREFIX,
-  // FINEXT1_PREFIX,
-  // FINEXT2_PREFIX,
-  // FINEXT4_PREFIX,
-  // FINEXT8_PREFIX,
-  // FINEXT16_PREFIX,
-  STR8_PREFIX,
-  STR16_PREFIX,
-  STR32_PREFIX,
-  ARRAY16_PREFIX,
-  ARRAY32_PREFIX,
-  MAP16_PREFIX,
-  MAP32_PREFIX,
-} = require('../index').constants;
+const { serialize, deserialize } = require('../index');
+
+/**
+ * Optimized way to create object with many keys
+ * @param {Number} size 
+ */
+const generateMap = (size = 1) => {
+  const pairs = new Array(size).fill(0).map((v, i) => [String(i) , v]);
+  return Object.fromEntries(pairs);
+}
 
 describe('Serializer', () => {
   describe('Primitive value', () => {
     it('nil', () => {
-      assert.deepEqual(serialize(null), Buffer.from([ NIL ]));
+      const expected = null;
+      const actual = deserialize(serialize(null));
+      assert.deepEqual(actual, expected);
     });
 
     it('bool true', () => {
-      assert.deepEqual(serialize(true), Buffer.from([ BOOL_TRUE ]));
+      const expected = null;
+      const actual = deserialize(serialize(null));
+      assert.deepEqual(actual, expected);
     });
     it('bool false', () => {
-      assert.deepEqual(serialize(false), Buffer.from([ BOOL_FALSE ]));
+      const expected = null;
+      const actual = deserialize(serialize(null));
+      assert.deepEqual(actual, expected);
     });
 
     it('integer positive fixint 7-bit', () => {
-      assert.deepEqual(serialize(0), Buffer.from([ 0x00 ]));
-      assert.deepEqual(serialize(127), Buffer.from([ 0x7f ]));
+      const values = [
+        0,
+        127,
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
     it('integer negative fixint 5-bit', () => {
-      assert.deepEqual(serialize(-1), Buffer.from([ 0b11111111 ]));
-      assert.deepEqual(serialize(-32), Buffer.from([ 0b11100000 ]));
+      const values = [
+        -1,
+        -32,
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
     it('integer uint 8', () => {
-      assert.deepEqual(serialize(2**8-1), Buffer.from([ UINT8_PREFIX,  0xff ]));
+      const values = [
+        2**8-1,
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
     it('integer uint 16', () => {
-      assert.deepEqual(serialize(2**16-1), Buffer.from([ UINT16_PREFIX,  0xff, 0xff ]));
+      const values = [
+        2**16-1,
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
     it('integer uint 32', () => {
-      assert.deepEqual(serialize(2**32-1), Buffer.from([ UINT32_PREFIX,  0xff, 0xff, 0xff, 0xff, ]));
+      const values = [
+        2**32-1,
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
     it('integer uint 64', () => {
-      assert.deepEqual(serialize(BigInt(0x1fffffffffffff)), Buffer.from([ UINT64_PREFIX,  0x00, 0x1f, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, ]));
+      const values = [
+        BigInt(0x1fffffffffffff),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
     it('integer int 8', () => {
-      assert.deepEqual(serialize(-(2**8/2-1)), Buffer.from([ INT8_PREFIX, 0x81 ]));
+      const values = [
+        -(2**8/2-1),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
     it('integer int 16', () => {
-      assert.deepEqual(serialize(-(2**16/2-1)), Buffer.from([ INT16_PREFIX, 0x80, 0x01 ]));
+      const values = [
+        -(2**16/2-1),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
     it('integer int 32', () => {
-      assert.deepEqual(serialize(-(2**32/2-1)), Buffer.from([ INT32_PREFIX, 0x80, 0x00, 0x00, 0x01 ]));
+      const values = [
+        -(2**32/2-1),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
     it('integer int 64', () => {
-      assert.deepEqual(serialize(BigInt(-(2**64/2-1))), Buffer.from([ INT64_PREFIX, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 ]));
+      const values = [
+        BigInt(-(2**64/2-1)),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
 
     it('float 64', () => {
-      assert.deepEqual(serialize(1.1), Buffer.from([ FLOAT64_PREFIX, 0x3f, 0xf1, 0x99, 0x99, 0x99, 0x99, 0x99, 0x9a, ]));
+      const values = [
+        1.1,
+        BigInt(Number.MAX_SAFE_INTEGER),
+        BigInt(Number.MIN_SAFE_INTEGER),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
 
     it('str fixstr', () => {
-      assert.deepEqual(serialize('a'), Buffer.from([ 0b10100001, 0x61 ]));
+      const values = [
+        'a',
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
     });
-    it('str str 8', () => {
-      const actual = serialize('01234567890123456789012345678901');
-      const expected = Buffer.from([ STR8_PREFIX, 32, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, 0x30, 0x31 ]);
-      assert.deepEqual(actual, expected);
+    it('str 8', () => {
+      const values = [
+        // per CJK character should be 3 to 4 bytes, we need 63 chars to achieve (2**8-1) bytes
+        '一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三',
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v, true)), v);
+      }
     });
-    // TODO str 16: serialize(deserialize)
-    // TODO str 32: serialize(deserialize)
+    it('str 16', () => {
+      const values = [
+        // 64 characters (Reason: 64 * 4 bytes > 2**8-1 bytes) 
+        '一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四',
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v, true)), v);
+      }
+    });
+    // TODO str 32
 
-    // TODO bin 8: serialize(deserialize)
-    // TODO bin 16: serialize(deserialize)
-    // TODO bin 32: serialize(deserialize)
-
-    it('array', () => {
-      assert.deepEqual(serialize([]), Buffer.from([ 0x90 ]));
+    it('bin 8', () => {
+      const values = [
+        // basically same as str 8
+        Buffer.from('一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三', 'binary'),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v, true)), v);
+      }
     });
-    // TODO array 16: serialize(deserialize)
-    // TODO array 32: serialize(deserialize)
-
-    it('map', () => {
-      assert.deepEqual(serialize({}), Buffer.from([ 0x80 ]));
+    it('bin 16', () => {
+      const values = [
+        // basically same as str 16
+        Buffer.from('一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四', 'binary'),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v, true)), v);
+      }
     });
-    // TODO map 16: serialize(deserialize)
-    // TODO map 32: serialize(deserialize)
+    // TODO bin 32
 
     // TODO ext
     // TODO timestamp
-  })
-
-  describe('Complex', () => {
-    it('"{"compact":true,"schema":0}"', () => {
-      const obj = {
-        compact: true,
-        schema: 0,
-      };
-      const result = serialize(obj);
-      assert.deepEqual(serialize(obj), Buffer.from([
-        0x82,
-        0xa7,
-        0x63,
-        0x6f,
-        0x6d,
-        0x70,
-        0x61,
-        0x63,
-        0x74,
-        0xc3,
-        0xa6,
-        0x73,
-        0x63,
-        0x68,
-        0x65,
-        0x6d,
-        0x61,
-        0x00,
-      ]));
-    });
   });
+
+  describe('Nestable structure', () => {
+    it('array', () => {
+      const values = [
+        [],
+        [[]],
+        [[],[],[]],
+        [{},{},{}],
+        [[{"a": [{}]}]],
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15], // maximum
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
+    });
+    it('array 16', () => {
+      const values = [
+        [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16], // minimum
+        new Array(65535).fill(0), // maximum
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
+    });
+    it('array 32', () => {
+      const values = [
+        new Array(65536).fill(0), // minimum
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
+    });
+
+    it('map fixmap', () => {
+      const values = [
+        {},
+        {"a": {}},
+        {"a": [{"b": {}}]},
+        generateMap(15), // maximum
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
+    });
+    it('map 16', () => {
+      const values = [
+        generateMap(16), //minimum
+        generateMap(65535), // maximum
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
+    });
+    it('map 32', () => {
+      const values = [
+        generateMap(65536), //minimum
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
+    });
+  })
 });
