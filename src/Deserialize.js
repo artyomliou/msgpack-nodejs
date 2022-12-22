@@ -5,7 +5,7 @@ const TypedValueResolver = require('./TypedValueResolver');
  * @param {Buffer} srcBuffer 
  * @param {boolean} debug
  */
-module.exports = function deserialize(srcBuffer, debug = false) {
+module.exports = function messagePackDeserialize(srcBuffer, debug = false) {
   // It's important to slice() the srcBuffer, otherwise, you may get dirty data 
   
   const view = new DataView(srcBuffer.buffer.slice(srcBuffer.byteOffset, srcBuffer.byteOffset + srcBuffer.byteLength));
