@@ -1,5 +1,6 @@
 const assert = require('assert');
 const { serialize, deserialize } = require('../index');
+const TimeSpec = require('../src/TimeSpec');
 
 /**
  * Optimized way to create object with many keys
@@ -137,7 +138,7 @@ describe('Serializer', () => {
         '一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三',
       ];
       for (const v of values) {
-        assert.deepEqual(deserialize(serialize(v, true)), v);
+        assert.deepEqual(deserialize(serialize(v)), v);
       }
     });
     it('str 16', () => {
@@ -146,7 +147,7 @@ describe('Serializer', () => {
         '一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四',
       ];
       for (const v of values) {
-        assert.deepEqual(deserialize(serialize(v, true)), v);
+        assert.deepEqual(deserialize(serialize(v)), v);
       }
     });
     // TODO str 32
@@ -157,7 +158,7 @@ describe('Serializer', () => {
         Buffer.from('一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三', 'binary'),
       ];
       for (const v of values) {
-        assert.deepEqual(deserialize(serialize(v, true)), v);
+        assert.deepEqual(deserialize(serialize(v)), v);
       }
     });
     it('bin 16', () => {
@@ -166,13 +167,41 @@ describe('Serializer', () => {
         Buffer.from('一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四', 'binary'),
       ];
       for (const v of values) {
-        assert.deepEqual(deserialize(serialize(v, true)), v);
+        assert.deepEqual(deserialize(serialize(v)), v);
       }
     });
     // TODO bin 32
 
+    // timestamp
+    it('timestamp 32', () => {
+      const values = [
+        new TimeSpec(0, 0),
+        TimeSpec.fromDate(new Date()).setNsec(0),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
+    });
+    it('timestamp 64', () => {
+      const values = [
+        new TimeSpec(0, 1),
+        TimeSpec.fromDate(new Date()),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
+    })
+    it('timestamp 96', () => {
+      const values = [
+        new TimeSpec(-1, 0),
+        TimeSpec.fromDate(new Date()),
+      ];
+      for (const v of values) {
+        assert.deepEqual(deserialize(serialize(v)), v);
+      }
+    })
+
     // TODO ext
-    // TODO timestamp
   });
 
   describe('Nestable structure', () => {

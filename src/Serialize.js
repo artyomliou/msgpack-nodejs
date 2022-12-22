@@ -6,9 +6,9 @@ const {
   BIN8_PREFIX,
   BIN16_PREFIX,
   BIN32_PREFIX,
-  // EXT8_PREFIX,
-  // EXT16_PREFIX,
-  // EXT32_PREFIX,
+  EXT8_PREFIX,
+  EXT16_PREFIX,
+  EXT32_PREFIX,
   // FLOAT32_PREFIX,
   FLOAT64_PREFIX,
   UINT8_PREFIX,
@@ -19,11 +19,11 @@ const {
   INT16_PREFIX,
   INT32_PREFIX,
   INT64_PREFIX,
-  // FINEXT1_PREFIX,
-  // FINEXT2_PREFIX,
-  // FINEXT4_PREFIX,
-  // FINEXT8_PREFIX,
-  // FINEXT16_PREFIX,
+  FIXEXT1_PREFIX,
+  FIXEXT2_PREFIX,
+  FIXEXT4_PREFIX,
+  FIXEXT8_PREFIX,
+  FIXEXT16_PREFIX,
   STR8_PREFIX,
   STR16_PREFIX,
   STR32_PREFIX,
@@ -31,7 +31,9 @@ const {
   ARRAY32_PREFIX,
   MAP16_PREFIX,
   MAP32_PREFIX,
+  EXT_TYPE_TIMESTAMP,
 } = require('./constants');
+const TimeSpec = require('./TimeSpec');
 
 
 /**
@@ -81,6 +83,10 @@ function match(byteArray, val) {
         byteArray.writeUint8(NIL);
         break;
       }
+      if (val instanceof Date) {
+        handleTimestamp(byteArray, val);
+        break;
+      }
       if (Buffer.isBuffer(val)) {
         handleBuffer(byteArray, val);
         break;
@@ -103,11 +109,9 @@ function match(byteArray, val) {
   
     default:
       console.debug('noop', val);
-      // TODO No support for Symbol, Function, Undefined
+      // No support for Symbol, Function, Undefined
       break;
   }
-  // TODO ext
-  // TODO timestamp
 }
 
 /**
@@ -318,4 +322,111 @@ function handleMap(byteArray, map = {}) {
   }
 
   throw new Error('Cannot handle map with more than (2^32)-1 pairs.');
+}
+
+/**
+ * @param {ByteArray} byteArray
+ * @param {Date} date
+ * @returns 
+ * @ref https://github.com/msgpack/msgpack/blob/master/spec.md#timestamp-extension-type
+ */
+function handleTimestamp(byteArray, date) {
+  const time = TimeSpec.fromDate(date);
+  if (time.nsec > 1000000000) {
+    throw new Error("Nanoseconds cannot be larger than 999999999.");
+  }
+  if (time.sec >= 0) {
+    if (time.nsec == 0) {
+      // timestamp 32
+      const buf = new ArrayBuffer(4);
+      const view = new DataView(buf);
+      view.setUint32(0, time.sec, false); // unsigned
+      handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf);
+    } else {
+      // timestamp 64
+      const buf = new ArrayBuffer(8);
+      const view = new DataView(buf);
+      view.setUint32(0, time.nsec, false); // unsigned
+      view.setUint32(4, time.sec, false); // unsigned
+      handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf);
+    } 
+  } else {
+    // timestamp 96
+    const buf = new ArrayBuffer(12);
+    const view = new DataView(buf);
+    view.setUint32(0, time.nsec, false); // unsigned
+    view.setBigInt64(0, BigInt(time.sec), false); // signed
+    handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf);
+  }
+}
+
+/**
+ * @param {ByteArray} byteArray
+ * @param {Number} type
+ * @param {ArrayBuffer|Buffer} data
+ * @returns 
+ */
+function handleExt(byteArray, type, data) {
+  if (data instanceof ArrayBuffer) {
+    data = Buffer.from(data);
+  }
+  const byteLength = data.byteLength;
+
+  // fixint
+  if (byteLength === 1) {
+    byteArray.writeUint8(FIXEXT1_PREFIX);
+    byteArray.writeInt8(type);
+    byteArray.writeBuffer(data);
+    return;
+
+  } else if (byteLength === 2) {
+    byteArray.writeUint8(FIXEXT2_PREFIX);
+    byteArray.writeInt8(type);
+    byteArray.writeBuffer(data);
+    return;
+
+  } else if (byteLength === 4) {
+    byteArray.writeUint8(FIXEXT4_PREFIX);
+    byteArray.writeInt8(type);
+    byteArray.writeBuffer(data);
+    return;
+
+  } else if (byteLength === 8) {
+    byteArray.writeUint8(FIXEXT8_PREFIX);
+    byteArray.writeInt8(type);
+    byteArray.writeBuffer(data);
+    return;
+
+  } else if (byteLength === 16) {
+    byteArray.writeUint8(FIXEXT16_PREFIX);
+    byteArray.writeInt8(type);
+    byteArray.writeBuffer(data);
+    return;
+  }
+
+  // ext 8
+  if (byteLength <= 2**8-1) {
+    byteArray.writeUint8(EXT8_PREFIX);
+    byteArray.writeUint8(byteLength);
+    byteArray.writeInt8(type);
+    byteArray.writeBuffer(data);
+    return;
+
+  } else if (byteLength <= 2**16-1) {
+    byteArray.writeUint8(EXT16_PREFIX);
+    byteArray.writeUint16(byteLength);
+    byteArray.writeInt8(type);
+    byteArray.writeBuffer(data);
+    return;
+
+  } else if (byteLength <= 2**32-1) {
+    byteArray.writeUint8(EXT32_PREFIX);
+    byteArray.writeUint32(byteLength);
+    byteArray.writeInt8(type);
+    byteArray.writeBuffer(data);
+    return;
+
+  }
+
+  throw new Error("Ext does not support data exceeding 2**32-1 bytes.");
 }

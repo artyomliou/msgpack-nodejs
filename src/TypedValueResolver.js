@@ -5,9 +5,9 @@ const {
   BIN8_PREFIX,
   BIN16_PREFIX,
   BIN32_PREFIX,
-  // EXT8_PREFIX,
-  // EXT16_PREFIX,
-  // EXT32_PREFIX,
+  EXT8_PREFIX,
+  EXT16_PREFIX,
+  EXT32_PREFIX,
   FLOAT32_PREFIX,
   FLOAT64_PREFIX,
   UINT8_PREFIX,
@@ -18,11 +18,11 @@ const {
   INT16_PREFIX,
   INT32_PREFIX,
   INT64_PREFIX,
-  // FINEXT1_PREFIX,
-  // FINEXT2_PREFIX,
-  // FINEXT4_PREFIX,
-  // FINEXT8_PREFIX,
-  // FINEXT16_PREFIX,
+  FIXEXT1_PREFIX,
+  FIXEXT2_PREFIX,
+  FIXEXT4_PREFIX,
+  FIXEXT8_PREFIX,
+  FIXEXT16_PREFIX,
   STR8_PREFIX,
   STR16_PREFIX,
   STR32_PREFIX,
@@ -30,7 +30,9 @@ const {
   ARRAY32_PREFIX,
   MAP16_PREFIX,
   MAP32_PREFIX,
+  EXT_TYPE_TIMESTAMP,
 } = require('./constants');
+const TimeSpec = require('./TimeSpec');
 
 module.exports = class TypedValueResolver {
 
@@ -161,30 +163,29 @@ module.exports = class TypedValueResolver {
     }
 
     // These 2 variables are declard for str & bin, because they share same resolving logic
-    let sizeDataLength;
+    let sizeByteLength;
     let dataByteLength;
 
     // str
-    let offset;
     if (firstByte >= 0xa0 && firstByte <= 0xbf) {
-      sizeDataLength = 0;
+      sizeByteLength = 0;
       dataByteLength = firstByte - 0xa0;
     } else if (firstByte === STR8_PREFIX) {
-      sizeDataLength = 1;
+      sizeByteLength = 1;
       dataByteLength = view.getUint8(pos);
     } else if (firstByte === STR16_PREFIX) {
-      sizeDataLength = 2;
+      sizeByteLength = 2;
       dataByteLength = view.getUint16(pos);
     } else if (firstByte === STR32_PREFIX) {
-      sizeDataLength = 4;
+      sizeByteLength = 4;
       dataByteLength = view.getUint32(pos);
     }
-    if (sizeDataLength || dataByteLength) {
+    if (sizeByteLength || dataByteLength) {
       // Calculate total length of this string value, so we can move outside position properly
-      this.byteLength = 1 + sizeDataLength + dataByteLength;
+      this.byteLength = 1 + sizeByteLength + dataByteLength;
 
       // Calculate the range
-      const strDataRange = this.#calculateDataRange(pos, sizeDataLength, dataByteLength);
+      const strDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength);
 
       const txt = new TextDecoder();
       this.value = txt.decode(view.buffer.slice(strDataRange.start, strDataRange.end));
@@ -194,18 +195,18 @@ module.exports = class TypedValueResolver {
 
     // bin
     if (firstByte === BIN8_PREFIX) {
-      sizeDataLength = 1;
+      sizeByteLength = 1;
       dataByteLength = view.getUint8(pos);
     } else if (firstByte === BIN16_PREFIX) {
-      sizeDataLength = 2;
+      sizeByteLength = 2;
       dataByteLength = view.getUint16(pos);
     } else if (firstByte === BIN32_PREFIX) {
-      sizeDataLength = 4;
+      sizeByteLength = 4;
       dataByteLength = view.getUint32(pos);
     }
-    if (sizeDataLength || dataByteLength) {
-      this.byteLength = 1 + sizeDataLength + dataByteLength;
-      const binDataRange = this.#calculateDataRange(pos, sizeDataLength, dataByteLength);
+    if (sizeByteLength || dataByteLength) {
+      this.byteLength = 1 + sizeByteLength + dataByteLength;
+      const binDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength);
 
       this.value = Buffer.from(view.buffer.slice(binDataRange.start, binDataRange.end));
       this.type = TypedValueResolver.typeBin;
@@ -246,7 +247,73 @@ module.exports = class TypedValueResolver {
       return;
     }
 
-    // TODO ext
+    // ext
+    if (firstByte === FIXEXT1_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 1;
+    } else if (firstByte === FIXEXT2_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 2;
+    } else if (firstByte === FIXEXT4_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 4;
+    } else if (firstByte === FIXEXT8_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 8;
+    } else if (firstByte === FIXEXT16_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 16;
+    } else if (firstByte === EXT8_PREFIX) {
+      sizeByteLength = 1;
+      dataByteLength = view.getUint8(pos);
+    } else if (firstByte === EXT16_PREFIX) {
+      sizeByteLength = 2;
+      dataByteLength = view.getUint16(pos);
+    } else if (firstByte === EXT32_PREFIX) {
+      sizeByteLength = 4;
+      dataByteLength = view.getUint32(pos);
+    }
+    if (dataByteLength) {
+      // Reminder: At this point, pos is after firstByte
+      const extType = view.getInt8(pos + sizeByteLength);
+
+      // Offset should include "size" and "type"
+      const extDataRange = this.#calculateDataRange(pos, (sizeByteLength + 1), dataByteLength);
+      const data = view.buffer.slice(extDataRange.start, extDataRange.end);
+
+      // Must-have settings 
+      this.byteLength = 1 + sizeByteLength + 1 + dataByteLength;
+      this.type = TypedValueResolver.typeExt;
+
+      // Postprocess for supported extType
+      // [Important] Because Javascript does not support nanoseconds, so nanoseconds will be discard.
+      if (extType === EXT_TYPE_TIMESTAMP) {
+        if (data.byteLength === 4) {
+          const sec = (new DataView(data)).getUint8(0);
+          this.value = new TimeSpec(sec, 0);
+          return;
+
+        } else if (data.byteLength === 8) {
+          const view = new DataView(data);
+          const nsec = view.getUint32(0, false);
+          const sec = view.getUint32(4, false);
+          this.value = new TimeSpec(sec, nsec);
+          return;
+
+        } else if (data.byteLength === 12) {
+          const view = new DataView(data);
+          const nsec = view.getUint32(0, false);
+          const sec = view.getBigInt64(4, false);
+          this.value = new TimeSpec(sec, nsec);
+          return;
+
+        } else {
+          throw new Error(`Timestamp family only supports 32/64/96 bit.`);
+        }
+      } else {
+        throw new Error(`Does not support unknown ext type.`);
+      }
+    }
   }
 
   /**

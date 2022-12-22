@@ -13,7 +13,11 @@ module.exports = class ByteArray {
   }
 
   writeBuffer(buffer) {
-    this.#buffers.push(buffer);
+    if (buffer instanceof ArrayBuffer) {
+      this.#buffers.push(Buffer.from(buffer));
+    } else {
+      this.#buffers.push(buffer);
+    }
   }
 
   /**

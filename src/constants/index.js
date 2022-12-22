@@ -30,4 +30,6 @@ module.exports = Object.freeze({
 	ARRAY32_PREFIX: 0xdd,
 	MAP16_PREFIX: 0xde,
 	MAP32_PREFIX: 0xdf,
+
+	EXT_TYPE_TIMESTAMP: -1,
 });
