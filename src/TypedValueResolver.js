@@ -118,9 +118,7 @@ module.exports = class TypedValueResolver {
     const firstByte = view.getUint8(pos);
     pos++;
 
-    if (TypedValueResolver.prefixTypeMap.size === 0) {
-      throw new Error('Map doet not init')
-    }
+    // Match first byte with prefixes
     const searchResult = TypedValueResolver.prefixTypeMap.get(firstByte);
     if (searchResult) {
       switch (searchResult) {
@@ -137,6 +135,7 @@ module.exports = class TypedValueResolver {
       }
     }
 
+    // Match first byte for these single byte data (fix-)
     if (firstByte >= 0x00 && firstByte <= 0x7f) {
       this.#handleInteger(view, pos, firstByte); // fixint
 
