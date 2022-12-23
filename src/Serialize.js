@@ -171,7 +171,7 @@ function handleInteger(byteArray, number = 0) {
   // signed
   if (number < 0) {
     if (-number <= 0xFF) {
-      byteArray.writeInt8(INT8_PREFIX);
+      byteArray.writeUint8(INT8_PREFIX);
       byteArray.writeInt8(number);
       return;
     }

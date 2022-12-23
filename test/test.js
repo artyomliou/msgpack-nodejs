@@ -14,26 +14,21 @@ const generateMap = (size = 1) => {
 describe('Serializer', () => {
   describe('Primitive value', () => {
     it('nil', () => {
-      const expected = null;
-      const actual = deserialize(serialize(null));
-      assert.deepEqual(actual, expected);
+      assert.deepEqual(deserialize(serialize(null)), null);
     });
 
     it('bool true', () => {
-      const expected = null;
-      const actual = deserialize(serialize(null));
-      assert.deepEqual(actual, expected);
+      assert.deepEqual(deserialize(serialize(true)), true);
     });
     it('bool false', () => {
-      const expected = null;
-      const actual = deserialize(serialize(null));
-      assert.deepEqual(actual, expected);
+      assert.deepEqual(deserialize(serialize(false)), false);
     });
 
     it('integer positive fixint 7-bit', () => {
       const values = [
         0,
-        127,
+        64,
+        128,
       ];
       for (const v of values) {
         assert.deepEqual(deserialize(serialize(v)), v);
@@ -82,7 +77,8 @@ describe('Serializer', () => {
     });
     it('integer int 8', () => {
       const values = [
-        -(2**8/2-1),
+        -128,
+        127,
       ];
       for (const v of values) {
         assert.deepEqual(deserialize(serialize(v)), v);
@@ -90,7 +86,8 @@ describe('Serializer', () => {
     });
     it('integer int 16', () => {
       const values = [
-        -(2**16/2-1),
+        -32768,
+        32767,
       ];
       for (const v of values) {
         assert.deepEqual(deserialize(serialize(v)), v);
@@ -98,7 +95,8 @@ describe('Serializer', () => {
     });
     it('integer int 32', () => {
       const values = [
-        -(2**32/2-1),
+        -(2**31),
+        (2**31)-1,
       ];
       for (const v of values) {
         assert.deepEqual(deserialize(serialize(v)), v);
@@ -106,7 +104,8 @@ describe('Serializer', () => {
     });
     it('integer int 64', () => {
       const values = [
-        BigInt(-(2**64/2-1)),
+        BigInt(-(2**63)),
+        BigInt((2**63)-1),
       ];
       for (const v of values) {
         assert.deepEqual(deserialize(serialize(v)), v);
@@ -136,6 +135,7 @@ describe('Serializer', () => {
       const values = [
         // per CJK character should be 3 to 4 bytes, we need 63 chars to achieve (2**8-1) bytes
         '一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三',
+        '😂',
       ];
       for (const v of values) {
         assert.deepEqual(deserialize(serialize(v)), v);
@@ -156,6 +156,7 @@ describe('Serializer', () => {
       const values = [
         // basically same as str 8
         Buffer.from('一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三', 'binary'),
+        Buffer.from('😂'),
       ];
       for (const v of values) {
         assert.deepEqual(deserialize(serialize(v)), v);

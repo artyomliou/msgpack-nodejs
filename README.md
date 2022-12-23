@@ -20,6 +20,9 @@ There's 2 files handling with different concerns.
 - [TypedValueResolver](blob/main/src/TypedValueResolver.js) are full of byte resolving logic. To be specific, resolve first byte for type, based on this, we can resolve remaining bytes with type-specific procedure.
  use [DataView](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView) to parse ```srcBuffer``` argument. The resolving logic was encapsulated into .
 
+### Inspiration
+1. [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) - For better buffer allocating strategy
+
 ## Prerequisites
 
 1. Node.js
@@ -42,28 +45,7 @@ serialize({ "compact": true, "schema": 0 });
 
 ### Deserialize
 ```javascript
-const arrayBuffer = new ArrayBuffer(18);
-const buf = new Uint8Array(arrayBuffer);
-let pos = 0;
-buf[pos++] = 0x82;
-buf[pos++] = 0xa7;
-buf[pos++] = 0x63;
-buf[pos++] = 0x6f;
-buf[pos++] = 0x6d;
-buf[pos++] = 0x70;
-buf[pos++] = 0x61;
-buf[pos++] = 0x63;
-buf[pos++] = 0x74;
-buf[pos++] = 0xc3;
-buf[pos++] = 0xa6;
-buf[pos++] = 0x73;
-buf[pos++] = 0x63;
-buf[pos++] = 0x68;
-buf[pos++] = 0x65;
-buf[pos++] = 0x6d;
-buf[pos++] = 0x61;
-buf[pos++] = 0x00;
-deserialize(Buffer.from(buf));
+deserialize(Buffer.from([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, ]));
 // return { compact: true, schema: 0 }
 ```
 
