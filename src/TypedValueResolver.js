@@ -34,6 +34,7 @@ const {
 } = require('./constants');
 const TimeSpec = require('./TimeSpec');
 
+
 module.exports = class TypedValueResolver {
 
   static typeInt = 1;
@@ -45,6 +46,40 @@ module.exports = class TypedValueResolver {
   static typeArray = 7;
   static typeMap = 8;
   static typeExt = 9;
+
+  static prefixTypeMap = new Map([
+    [UINT8_PREFIX, TypedValueResolver.typeInt],
+    [UINT16_PREFIX, TypedValueResolver.typeInt],
+    [UINT32_PREFIX, TypedValueResolver.typeInt],
+    [UINT64_PREFIX, TypedValueResolver.typeInt],
+    [INT8_PREFIX, TypedValueResolver.typeInt],
+    [INT16_PREFIX, TypedValueResolver.typeInt],
+    [INT32_PREFIX, TypedValueResolver.typeInt],
+    [INT64_PREFIX, TypedValueResolver.typeInt],
+    [NIL, TypedValueResolver.typeNil],
+    [BOOL_FALSE, TypedValueResolver.typeBool],
+    [BOOL_TRUE, TypedValueResolver.typeBool],
+    [FLOAT32_PREFIX, TypedValueResolver.typeFloat],
+    [FLOAT64_PREFIX, TypedValueResolver.typeFloat],
+    [STR8_PREFIX, TypedValueResolver.typeStr],
+    [STR16_PREFIX, TypedValueResolver.typeStr],
+    [STR32_PREFIX, TypedValueResolver.typeStr],
+    [BIN8_PREFIX, TypedValueResolver.typeBin],
+    [BIN16_PREFIX, TypedValueResolver.typeBin],
+    [BIN32_PREFIX, TypedValueResolver.typeBin],
+    [ARRAY16_PREFIX, TypedValueResolver.typeArray],
+    [ARRAY32_PREFIX, TypedValueResolver.typeArray],
+    [MAP16_PREFIX, TypedValueResolver.typeMap],
+    [MAP32_PREFIX, TypedValueResolver.typeMap],
+    [EXT8_PREFIX, TypedValueResolver.typeExt],
+    [EXT16_PREFIX, TypedValueResolver.typeExt],
+    [EXT32_PREFIX, TypedValueResolver.typeExt],
+    [FIXEXT1_PREFIX, TypedValueResolver.typeExt],
+    [FIXEXT2_PREFIX, TypedValueResolver.typeExt],
+    [FIXEXT4_PREFIX, TypedValueResolver.typeExt],
+    [FIXEXT8_PREFIX, TypedValueResolver.typeExt],
+    [FIXEXT16_PREFIX, TypedValueResolver.typeExt],
+  ]);
 
   /**
    * Resolved type
@@ -78,14 +113,61 @@ module.exports = class TypedValueResolver {
     this.byteLength = 0;
     this.elementCount = 0;
 
-    // Get first byte
+    // Get first byte & ove pointer for resolving value
+    // (Reminder: because of pass by value, increment happening here will not affect the outside one)
     const firstByte = view.getUint8(pos);
-
-    // Move pointer for resolving value
-    // (Do remember, because of pass by value, increment happening here will not affect the outside one)
     pos++;
 
-    // integer
+    if (TypedValueResolver.prefixTypeMap.size === 0) {
+      throw new Error('Map doet not init')
+    }
+    const searchResult = TypedValueResolver.prefixTypeMap.get(firstByte);
+    if (searchResult) {
+      switch (searchResult) {
+        case TypedValueResolver.typeInt: this.#handleInteger(view, pos, firstByte); return;
+        case TypedValueResolver.typeNil: this.#handleNil(view, pos, firstByte); return;
+        case TypedValueResolver.typeBool: this.#handleBool(view, pos, firstByte); return;
+        case TypedValueResolver.typeFloat: this.#handleFloat(view, pos, firstByte); return;
+        case TypedValueResolver.typeStr: this.#handleStr(view, pos, firstByte); return;
+        case TypedValueResolver.typeBin: this.#handleBin(view, pos, firstByte); return;
+        case TypedValueResolver.typeArray: this.#handleArray(view, pos, firstByte); return;
+        case TypedValueResolver.typeMap: this.#handleMap(view, pos, firstByte); return;
+        case TypedValueResolver.typeExt: this.#handleExt(view, pos, firstByte); return;
+        default: throw new Error('Should match exactly one type.');
+      }
+    }
+
+    if (firstByte >= 0x00 && firstByte <= 0x7f) {
+      this.#handleInteger(view, pos, firstByte); // fixint
+
+    } else if (firstByte >= 0xe0 && firstByte <= 0xff) {
+      this.#handleInteger(view, pos, firstByte); // fixint
+
+    } else if (firstByte >= 0xa0 && firstByte <= 0xbf) {
+      this.#handleStr(view, pos, firstByte); // fixstr
+
+    } else if (firstByte >= 0x90 && firstByte <= 0x9f) {
+      this.#handleArray(view, pos, firstByte); // fixarray
+
+    } else if (firstByte >= 0x80 && firstByte <= 0x8f) {
+      this.#handleMap(view, pos, firstByte); // fixmap
+
+    } else {
+      const firtByteHex = firstByte.toString(16);
+      console.error("Unknown first byte.", firtByteHex);
+      throw new Error(`Unknown first byte. (${firtByteHex})`);
+
+    }
+  }
+
+  /**
+   * @param {DataView} view 
+   * @param {Number} pos 
+   * @param {Number} firstByte 
+   */
+  #handleInteger(view, pos, firstByte) {
+    this.type = TypedValueResolver.typeInt;
+
     if (firstByte >= 0x00 && firstByte <= 0x7f) {
       this.byteLength = 1;
       this.value = view.getUint8(pos-1);
@@ -127,46 +209,61 @@ module.exports = class TypedValueResolver {
       this.value = view.getBigInt64(pos, false);
 
     }
-    if (this.byteLength) {
-      this.type = TypedValueResolver.typeInt;
-      return;
-    }
+  }
 
-    // null
-    if (firstByte === NIL) {
-      this.byteLength = 1;
-      this.value = null;
-      this.type = TypedValueResolver.typeNil;
-      return;
-    }
+  /**
+   * @param {DataView} view 
+   * @param {Number} pos 
+   * @param {Number} firstByte 
+   */
+  #handleNil(view, pos, firstByte) {
+    this.type = TypedValueResolver.typeNil;
+    this.byteLength = 1;
+    this.value = null;
+  }
 
-    // bool
-    if (firstByte === BOOL_TRUE || firstByte === BOOL_FALSE) {
-      this.byteLength = 1;
-      this.value = (firstByte === BOOL_TRUE);
-      this.type = TypedValueResolver.typeBool;
-      return;
-    }
 
-    // float
+  /**
+   * @param {DataView} view 
+   * @param {Number} pos 
+   * @param {Number} firstByte 
+   */
+  #handleBool(view, pos, firstByte) {
+    this.type = TypedValueResolver.typeBool;
+    this.byteLength = 1;
+    this.value = (firstByte === BOOL_TRUE);
+  }
+
+
+  /**
+   * @param {DataView} view 
+   * @param {Number} pos 
+   * @param {Number} firstByte 
+   */
+  #handleFloat(view, pos, firstByte) {
+    this.type = TypedValueResolver.typeFloat;
+
     if (firstByte === FLOAT32_PREFIX) {
       this.byteLength = 5;
       this.value = view.getFloat32(pos, false);
-      this.type = TypedValueResolver.typeFloat;
-      return;
-    }
-    if (firstByte === FLOAT64_PREFIX) {
+
+    } else if (firstByte === FLOAT64_PREFIX) {
       this.byteLength = 9;
       this.value = view.getFloat64(pos, false);
-      this.type = TypedValueResolver.typeFloat;
-      return;
-    }
 
-    // These 2 variables are declard for str & bin, because they share same resolving logic
+    }
+  }
+
+  /**
+   * @param {DataView} view 
+   * @param {Number} pos 
+   * @param {Number} firstByte 
+   */
+  #handleStr(view, pos, firstByte) {
+    this.type = TypedValueResolver.typeStr;
+
     let sizeByteLength;
     let dataByteLength;
-
-    // str
     if (firstByte >= 0xa0 && firstByte <= 0xbf) {
       sizeByteLength = 0;
       dataByteLength = firstByte - 0xa0;
@@ -180,20 +277,27 @@ module.exports = class TypedValueResolver {
       sizeByteLength = 4;
       dataByteLength = view.getUint32(pos);
     }
-    if (sizeByteLength || dataByteLength) {
-      // Calculate total length of this string value, so we can move outside position properly
-      this.byteLength = 1 + sizeByteLength + dataByteLength;
 
-      // Calculate the range
-      const strDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength);
+    // Calculate total length of this string value, so we can move outside position properly
+    this.byteLength = 1 + sizeByteLength + dataByteLength;
 
-      const txt = new TextDecoder();
-      this.value = txt.decode(view.buffer.slice(strDataRange.start, strDataRange.end));
-      this.type = TypedValueResolver.typeStr;
-      return;
-    }
+    // Calculate the range
+    const strDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength);
 
-    // bin
+    const txt = new TextDecoder();
+    this.value = txt.decode(view.buffer.slice(strDataRange.start, strDataRange.end));
+  }
+
+  /**
+   * @param {DataView} view 
+   * @param {Number} pos 
+   * @param {Number} firstByte 
+   */
+  #handleBin(view, pos, firstByte) {
+    this.type = TypedValueResolver.typeBin;
+
+    let sizeByteLength;
+    let dataByteLength;
     if (firstByte === BIN8_PREFIX) {
       sizeByteLength = 1;
       dataByteLength = view.getUint8(pos);
@@ -204,115 +308,137 @@ module.exports = class TypedValueResolver {
       sizeByteLength = 4;
       dataByteLength = view.getUint32(pos);
     }
-    if (sizeByteLength || dataByteLength) {
-      this.byteLength = 1 + sizeByteLength + dataByteLength;
-      const binDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength);
 
-      this.value = Buffer.from(view.buffer.slice(binDataRange.start, binDataRange.end));
-      this.type = TypedValueResolver.typeBin;
-      return;
-    }
+    this.byteLength = 1 + sizeByteLength + dataByteLength;
+    const binDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength);
+    this.value = Buffer.from(view.buffer.slice(binDataRange.start, binDataRange.end));
+  }
 
-    // array
+  /**
+   * @param {DataView} view 
+   * @param {Number} pos 
+   * @param {Number} firstByte 
+   */
+  #handleArray(view, pos, firstByte) {
+    this.type = TypedValueResolver.typeArray;
+    this.value = [];
+
     if (firstByte >= 0x90 && firstByte <= 0x9f) {
       this.byteLength = 1;
       this.elementCount = (firstByte - 0b10010000);
+
     } else if (firstByte === ARRAY16_PREFIX) {
       this.byteLength = 3;
       this.elementCount = view.getUint16(pos);
+
     } else if (firstByte === ARRAY32_PREFIX) {
       this.byteLength = 5;
       this.elementCount = view.getUint32(pos);
-    }
-    if (this.byteLength) {
-      this.value = [];
-      this.type = TypedValueResolver.typeArray;
-      return;
-    }
 
-    // map
+    }
+  }
+
+  /**
+   * @param {DataView} view 
+   * @param {Number} pos 
+   * @param {Number} firstByte 
+   */
+  #handleMap(view, pos, firstByte) {
+    this.type = TypedValueResolver.typeMap;
+    this.value = {};
+
     if (firstByte >= 0x80 && firstByte <= 0x8f) {
       this.byteLength = 1;
       this.elementCount = (firstByte - 0x80);
+
     } else if (firstByte === MAP16_PREFIX) {
       this.byteLength = 3;
       this.elementCount = view.getUint16(pos);
+
     } else if (firstByte === MAP32_PREFIX) {
       this.byteLength = 5;
       this.elementCount = view.getUint32(pos);
-    }
-    if (this.byteLength) {
-      this.value = {};
-      this.type = TypedValueResolver.typeMap;
-      return;
-    }
 
-    // ext
+    }
+  }
+
+  /**
+   * @param {DataView} view 
+   * @param {Number} pos 
+   * @param {Number} firstByte 
+   */
+  #handleExt(view, pos, firstByte) {
+    this.type = TypedValueResolver.typeExt;
+
+    let sizeByteLength;
+    let dataByteLength;
     if (firstByte === FIXEXT1_PREFIX) {
       sizeByteLength = 0;
       dataByteLength = 1;
+
     } else if (firstByte === FIXEXT2_PREFIX) {
       sizeByteLength = 0;
       dataByteLength = 2;
+
     } else if (firstByte === FIXEXT4_PREFIX) {
       sizeByteLength = 0;
       dataByteLength = 4;
+
     } else if (firstByte === FIXEXT8_PREFIX) {
       sizeByteLength = 0;
       dataByteLength = 8;
+
     } else if (firstByte === FIXEXT16_PREFIX) {
       sizeByteLength = 0;
       dataByteLength = 16;
+
     } else if (firstByte === EXT8_PREFIX) {
       sizeByteLength = 1;
       dataByteLength = view.getUint8(pos);
+
     } else if (firstByte === EXT16_PREFIX) {
       sizeByteLength = 2;
       dataByteLength = view.getUint16(pos);
+
     } else if (firstByte === EXT32_PREFIX) {
       sizeByteLength = 4;
       dataByteLength = view.getUint32(pos);
+
     }
-    if (dataByteLength) {
-      // Reminder: At this point, pos is after firstByte
-      const extType = view.getInt8(pos + sizeByteLength);
 
-      // Offset should include "size" and "type"
-      const extDataRange = this.#calculateDataRange(pos, (sizeByteLength + 1), dataByteLength);
-      const data = view.buffer.slice(extDataRange.start, extDataRange.end);
+    this.byteLength = 1 + sizeByteLength + 1 + dataByteLength;
+    
+    // Reminder: At this point, pos is after firstByte
+    const extType = view.getInt8(pos + sizeByteLength);
 
-      // Must-have settings 
-      this.byteLength = 1 + sizeByteLength + 1 + dataByteLength;
-      this.type = TypedValueResolver.typeExt;
+    // Offset should include "size" and "type"
+    const extDataRange = this.#calculateDataRange(pos, (sizeByteLength + 1), dataByteLength);
+    const data = view.buffer.slice(extDataRange.start, extDataRange.end);
 
-      // Postprocess for supported extType
-      // [Important] Because Javascript does not support nanoseconds, so nanoseconds will be discard.
-      if (extType === EXT_TYPE_TIMESTAMP) {
-        if (data.byteLength === 4) {
-          const sec = (new DataView(data)).getUint8(0);
-          this.value = new TimeSpec(sec, 0);
-          return;
+    // Postprocess for supported extType
+    // [Important] Because Javascript does not support nanoseconds, so nanoseconds will be discard.
+    if (extType === EXT_TYPE_TIMESTAMP) {
+      if (data.byteLength === 4) {
+        const sec = (new DataView(data)).getUint8(0);
+        this.value = new TimeSpec(sec, 0);
 
-        } else if (data.byteLength === 8) {
-          const view = new DataView(data);
-          const nsec = view.getUint32(0, false);
-          const sec = view.getUint32(4, false);
-          this.value = new TimeSpec(sec, nsec);
-          return;
+      } else if (data.byteLength === 8) {
+        const view = new DataView(data);
+        const nsec = view.getUint32(0, false);
+        const sec = view.getUint32(4, false);
+        this.value = new TimeSpec(sec, nsec);
 
-        } else if (data.byteLength === 12) {
-          const view = new DataView(data);
-          const nsec = view.getUint32(0, false);
-          const sec = view.getBigInt64(4, false);
-          this.value = new TimeSpec(sec, nsec);
-          return;
+      } else if (data.byteLength === 12) {
+        const view = new DataView(data);
+        const nsec = view.getUint32(0, false);
+        const sec = view.getBigInt64(4, false);
+        this.value = new TimeSpec(sec, nsec);
 
-        } else {
-          throw new Error(`Timestamp family only supports 32/64/96 bit.`);
-        }
       } else {
-        throw new Error(`Does not support unknown ext type.`);
+        throw new Error(`Timestamp family only supports 32/64/96 bit.`);
       }
+    } else {
+      throw new Error(`Does not support unknown ext type.`);
     }
   }
 
