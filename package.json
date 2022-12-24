@@ -8,15 +8,20 @@
   },
   "dependencies": {},
   "devDependencies": {
-    "eslint": "^8.30.0",
-    "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.26.0",
     "husky": "^8.0.2",
-    "mocha": "^10.2.0"
+    "mocha": "^10.2.0",
+    "nyc": "^15.1.0",
+    "standard": "^17.0.0"
+  },
+  "standard": {
+    "env": [
+      "mocha"
+    ]
   },
   "scripts": {
     "test": "mocha",
-    "lint": "eslint index.js",
+    "testcov": "nyc --reporter=text mocha",
+    "lint": "standard",
     "prepare": "husky install"
   },
   "repository": {

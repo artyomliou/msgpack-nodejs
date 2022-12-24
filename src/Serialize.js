@@ -1,4 +1,4 @@
-const ByteArray = require('./ByteArray');
+const ByteArray = require('./ByteArray')
 const {
   NIL,
   BOOL_FALSE,
@@ -31,342 +31,338 @@ const {
   ARRAY32_PREFIX,
   MAP16_PREFIX,
   MAP32_PREFIX,
-  EXT_TYPE_TIMESTAMP,
-} = require('./constants');
-const TimeSpec = require('./TimeSpec');
-
+  EXT_TYPE_TIMESTAMP
+} = require('./constants')
+const TimeSpec = require('./TimeSpec')
 
 /**
  * @param {Object} srcObject
  * @param {boolean} debug
  */
-module.exports = function messagePackSerialize(srcObject, debug = false) {
-  let byteArray = new ByteArray();
-  match(byteArray, srcObject);
-  
-  const buffer = byteArray.getBuffer();
+module.exports = function messagePackSerialize (srcObject, debug = false) {
+  const byteArray = new ByteArray()
+  match(byteArray, srcObject)
+
+  const buffer = byteArray.getBuffer()
   if (debug) {
-    console.debug(buffer);
+    console.debug(buffer)
   }
-  return buffer;
-};
+  return buffer
+}
 
 /**
  * @param {ByteArray} byteArray
  * @param {*} val
- * @returns 
+ * @returns
  */
-function match(byteArray, val) {
+function match (byteArray, val) {
   switch (typeof val) {
     case 'boolean':
-      handleBoolean(byteArray, val);
-      break;
+      handleBoolean(byteArray, val)
+      break
 
     case 'bigint':
-      handleInteger(byteArray, val);
-      break;
-    
+      handleInteger(byteArray, val)
+      break
+
     case 'number':
       if (Number.isInteger(val)) {
-        handleInteger(byteArray, val);
+        handleInteger(byteArray, val)
       } else {
-        handleFloat(byteArray, val);
+        handleFloat(byteArray, val)
       }
-      break;
-    
+      break
+
     case 'string':
-      handleString(byteArray, val);
-      break;
+      handleString(byteArray, val)
+      break
 
     case 'object':
       if (val === null) {
-        byteArray.writeUint8(NIL);
-        break;
+        byteArray.writeUint8(NIL)
+        break
       }
       if (val instanceof Date) {
-        handleTimestamp(byteArray, val);
-        break;
+        handleTimestamp(byteArray, val)
+        break
       }
       if (Buffer.isBuffer(val)) {
-        handleBuffer(byteArray, val);
-        break;
+        handleBuffer(byteArray, val)
+        break
       }
       if (Array.isArray(val)) {
-        handleArray(byteArray, val);
+        handleArray(byteArray, val)
         for (const element of val) {
           match(byteArray, element)
         }
-        break;
+        break
       }
 
       // Handling typical object
-      handleMap(byteArray, val);
+      handleMap(byteArray, val)
       for (const [k, v] of Object.entries(val)) {
-        handleString(byteArray, k);
+        handleString(byteArray, k)
         match(byteArray, v)
       }
-      break;
-  
+      break
+
     default:
-      console.debug('noop', val);
+      console.debug('noop', val)
       // No support for Symbol, Function, Undefined
-      break;
+      break
   }
 }
 
 /**
  * @param {ByteArray} byteArray
  * @param {Number} number
- * @returns 
+ * @returns
  */
-function handleBoolean(byteArray, val = true) {
+function handleBoolean (byteArray, val = true) {
   if (val) {
-    byteArray.writeUint8(BOOL_TRUE);
+    byteArray.writeUint8(BOOL_TRUE)
   } else {
-    byteArray.writeUint8(BOOL_FALSE);
+    byteArray.writeUint8(BOOL_FALSE)
   }
 }
 
 /**
  * @param {ByteArray} byteArray
  * @param {Number} number
- * @returns 
+ * @returns
  */
-function handleInteger(byteArray, number = 0) {
+function handleInteger (byteArray, number = 0) {
   // positive fixint stores 7-bit positive integer
   // 0b1111111 = 127
   if (number >= 0 && number <= 127) {
-    byteArray.writeUint8(number);
-    return;
+    byteArray.writeUint8(number)
+    return
   }
 
   // negative fixint stores 5-bit negative integer
   if (number < 0 && number >= -32) {
-    byteArray.writeInt8(number);
-    return;
+    byteArray.writeInt8(number)
+    return
   }
 
   // unsigned
   if (number > 0) {
     if (number <= 0xFF) {
-      byteArray.writeUint8(UINT8_PREFIX);
-      byteArray.writeUint8(number);
-      return;
+      byteArray.writeUint8(UINT8_PREFIX)
+      byteArray.writeUint8(number)
+      return
     }
     if (number <= 0xFFFF) {
-      byteArray.writeUint8(UINT16_PREFIX);
-      byteArray.writeUint16(number);
-      return;
+      byteArray.writeUint8(UINT16_PREFIX)
+      byteArray.writeUint16(number)
+      return
     }
     if (number <= 0xFFFFFFFF) {
-      byteArray.writeUint8(UINT32_PREFIX);
-      byteArray.writeUint32(number);
-      return;
+      byteArray.writeUint8(UINT32_PREFIX)
+      byteArray.writeUint32(number)
+      return
     }
-    byteArray.writeUint8(UINT64_PREFIX);
-    byteArray.writeUint64(number);
-    return;
+    byteArray.writeUint8(UINT64_PREFIX)
+    byteArray.writeUint64(number)
+    return
   }
 
   // signed
   if (number < 0) {
     if (-number <= 0xFF) {
-      byteArray.writeUint8(INT8_PREFIX);
-      byteArray.writeInt8(number);
-      return;
+      byteArray.writeUint8(INT8_PREFIX)
+      byteArray.writeInt8(number)
+      return
     }
     if (-number <= 0xFFFF) {
-      byteArray.writeUint8(INT16_PREFIX);
-      byteArray.writeInt16(number);
-      return;
+      byteArray.writeUint8(INT16_PREFIX)
+      byteArray.writeInt16(number)
+      return
     }
     if (-number <= 0xFFFFFFFF) {
-      byteArray.writeUint8(INT32_PREFIX);
-      byteArray.writeInt32(number);
-      return;
+      byteArray.writeUint8(INT32_PREFIX)
+      byteArray.writeInt32(number)
+      return
     }
-    byteArray.writeUint8(INT64_PREFIX);
-    byteArray.writeInt64(number);
-    return;
+    byteArray.writeUint8(INT64_PREFIX)
+    byteArray.writeInt64(number)
   }
 }
 
 /**
  * @param {ByteArray} byteArray
  * @param {Number} number
- * @returns 
+ * @returns
  */
-function handleFloat(byteArray, number = 0) {
+function handleFloat (byteArray, number = 0) {
   // Since all float in Javascript is double, it's not possible to have FLOAT32 type.
-  byteArray.writeUint8(FLOAT64_PREFIX);
-  byteArray.writeFloat64(number);
+  byteArray.writeUint8(FLOAT64_PREFIX)
+  byteArray.writeFloat64(number)
 }
 
 /**
  * @param {ByteArray} byteArray
  * @param {String} string
- * @returns 
+ * @returns
  */
-function handleString(byteArray, string = '') {
-  const strBuf = Buffer.from(string, "utf-8");
-  const bytesCount = strBuf.byteLength;
+function handleString (byteArray, string = '') {
+  const strBuf = Buffer.from(string, 'utf-8')
+  const bytesCount = strBuf.byteLength
   if (bytesCount <= 31) {
-    byteArray.writeUint8(0b10100000 + bytesCount);
-    byteArray.writeBuffer(strBuf);
-    return;
+    byteArray.writeUint8(0b10100000 + bytesCount)
+    byteArray.writeBuffer(strBuf)
+    return
   }
-  if (bytesCount <= (2**8)-1) {
-    byteArray.writeUint8(STR8_PREFIX);
-    byteArray.writeUint8(bytesCount);
-    byteArray.writeBuffer(strBuf);
-    return;
+  if (bytesCount <= (2 ** 8) - 1) {
+    byteArray.writeUint8(STR8_PREFIX)
+    byteArray.writeUint8(bytesCount)
+    byteArray.writeBuffer(strBuf)
+    return
   }
-  if (bytesCount <= (2**16)-1) {
-    byteArray.writeUint8(STR16_PREFIX);
-    byteArray.writeUint16(bytesCount);
-    byteArray.writeBuffer(strBuf);
-    return;
+  if (bytesCount <= (2 ** 16) - 1) {
+    byteArray.writeUint8(STR16_PREFIX)
+    byteArray.writeUint16(bytesCount)
+    byteArray.writeBuffer(strBuf)
+    return
   }
-  if (bytesCount <= (2**32)-1) {
-    byteArray.writeUint8(STR32_PREFIX);
-    byteArray.writeUint32(bytesCount);
-    byteArray.writeBuffer(strBuf);
-    return;
+  if (bytesCount <= (2 ** 32) - 1) {
+    byteArray.writeUint8(STR32_PREFIX)
+    byteArray.writeUint32(bytesCount)
+    byteArray.writeBuffer(strBuf)
   }
 }
 
 /**
  * @param {ByteArray} byteArray
  * @param {Buffer} buffer
- * @returns 
+ * @returns
  */
-function handleBuffer(byteArray, buffer) {
-  const bytesCount = buffer.byteLength;
-  if (bytesCount <= (2**8)-1) {
-    byteArray.writeUint8(BIN8_PREFIX);
-    byteArray.writeUint8(bytesCount);
-    byteArray.writeBuffer(buffer);
-    return;
+function handleBuffer (byteArray, buffer) {
+  const bytesCount = buffer.byteLength
+  if (bytesCount <= (2 ** 8) - 1) {
+    byteArray.writeUint8(BIN8_PREFIX)
+    byteArray.writeUint8(bytesCount)
+    byteArray.writeBuffer(buffer)
+    return
   }
-  if (bytesCount <= (2**16)-1) {
-    byteArray.writeUint8(BIN16_PREFIX);
-    byteArray.writeUint16(bytesCount);
-    byteArray.writeBuffer(buffer);
-    return;
+  if (bytesCount <= (2 ** 16) - 1) {
+    byteArray.writeUint8(BIN16_PREFIX)
+    byteArray.writeUint16(bytesCount)
+    byteArray.writeBuffer(buffer)
+    return
   }
-  if (bytesCount <= (2**32)-1) {
-    byteArray.writeUint8(BIN32_PREFIX);
-    byteArray.writeUint32(bytesCount);
-    byteArray.writeBuffer(buffer);
-    return;
+  if (bytesCount <= (2 ** 32) - 1) {
+    byteArray.writeUint8(BIN32_PREFIX)
+    byteArray.writeUint32(bytesCount)
+    byteArray.writeBuffer(buffer)
   }
 }
 
 /**
  * @param {ByteArray} byteArray
  * @param {Array} array
- * @returns 
+ * @returns
  */
-function handleArray(byteArray, array = {}) {
-  const arraySize = array.length;
+function handleArray (byteArray, array = {}) {
+  const arraySize = array.length
 
   // fixarray
   if (arraySize < 0xF) {
-    byteArray.writeUint8(0b10010000 + arraySize);
-    return;
-  }
-  
-  // map 16
-  if (arraySize < 0xFFFF) {
-    byteArray.writeUint8(ARRAY16_PREFIX);
-    byteArray.writeUint16(arraySize);
-    return;
-  }
-  
-  // map 32
-  if (arraySize < 0xFFFFFFFF) {
-    byteArray.writeUint8(ARRAY32_PREFIX);
-    byteArray.writeUint32(arraySize);
-    return;
+    byteArray.writeUint8(0b10010000 + arraySize)
+    return
   }
 
-  throw new Error('Cannot handle array with more than (2^32)-1 elements.');
+  // map 16
+  if (arraySize < 0xFFFF) {
+    byteArray.writeUint8(ARRAY16_PREFIX)
+    byteArray.writeUint16(arraySize)
+    return
+  }
+
+  // map 32
+  if (arraySize < 0xFFFFFFFF) {
+    byteArray.writeUint8(ARRAY32_PREFIX)
+    byteArray.writeUint32(arraySize)
+    return
+  }
+
+  throw new Error('Cannot handle array with more than (2^32)-1 elements.')
 }
 
 /**
  * @param {ByteArray} byteArray
  * @param {Object} map
- * @returns 
+ * @returns
  */
-function handleMap(byteArray, map = {}) {
-  const mapSize = Object.keys(map).length;
+function handleMap (byteArray, map = {}) {
+  const mapSize = Object.keys(map).length
 
   // fixmap
   if (mapSize < 0xF) {
-    byteArray.writeUint8(0b10000000 + mapSize);
-    return;
-  }
-  
-  // map 16
-  if (mapSize < 0xFFFF) {
-    byteArray.writeUint8(MAP16_PREFIX);
-    byteArray.writeUint16(mapSize);
-    return;
-  }
-  
-  // map 32
-  if (mapSize < 0xFFFFFFFF) {
-    byteArray.writeUint8(MAP32_PREFIX);
-    byteArray.writeUint32(mapSize);
-    return;
+    byteArray.writeUint8(0b10000000 + mapSize)
+    return
   }
 
-  throw new Error('Cannot handle map with more than (2^32)-1 pairs.');
+  // map 16
+  if (mapSize < 0xFFFF) {
+    byteArray.writeUint8(MAP16_PREFIX)
+    byteArray.writeUint16(mapSize)
+    return
+  }
+
+  // map 32
+  if (mapSize < 0xFFFFFFFF) {
+    byteArray.writeUint8(MAP32_PREFIX)
+    byteArray.writeUint32(mapSize)
+    return
+  }
+
+  throw new Error('Cannot handle map with more than (2^32)-1 pairs.')
 }
 
 /**
  * @param {ByteArray} byteArray
  * @param {Date} date
- * @returns 
+ * @returns
  * @ref https://github.com/msgpack/msgpack/blob/master/spec.md#timestamp-extension-type
  */
-function handleTimestamp(byteArray, date) {
-  const time = TimeSpec.fromDate(date);
+function handleTimestamp (byteArray, date) {
+  const time = TimeSpec.fromDate(date)
   if (time.nsec > 1000000000) {
-    throw new Error("Nanoseconds cannot be larger than 999999999.");
+    throw new Error('Nanoseconds cannot be larger than 999999999.')
   }
-  
+
   if (time.sec >= 0 && time.sec <= 2 ** 32) {
     // (spec pseudo code: ```data64 & 0xffffffff00000000L == 0```)
-    // It is basically doing masking on the data64 variable, which only keep nsec, and decide if it equals to 0. 
-    if (time.nsec == 0) {
+    // It is basically doing masking on the data64 variable, which only keep nsec, and decide if it equals to 0.
+    if (time.nsec === 0) {
       // timestamp 32
-      const buf = Buffer.alloc(4);
-      buf.writeUint32BE(Number(time.sec));// unsigned
-      handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf);
+      const buf = Buffer.alloc(4)
+      buf.writeUint32BE(Number(time.sec))// unsigned
+      handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf)
     } else {
       // timestamp 64
       // (spec pseudo code: ```uint64_t data64 = (time.tv_nsec << 34) | time.tv_sec;```)
       // While spec requires bitwise operation on uint64, but it's not possible for javascript,
       // because either left-shift or right-shift will turn both left and right operand into 32-bit data.
       // But it's possible to use multiply instead.
-      // While all number in javascript are 64-bit and it can hold up to 53-bit mantissa, 
+      // While all number in javascript are 64-bit and it can hold up to 53-bit mantissa,
       // but nsec ranges from 0 ~ 999*1000000, if it were log by 2, we got 29, since it's below 53, so it's safe.
       // https://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift
-      const shiftedNsec = (time.nsec * 2 ** 31);
-      const data64 = BigInt(shiftedNsec + Number(time.sec));
+      const shiftedNsec = (time.nsec * 2 ** 31)
+      const data64 = BigInt(shiftedNsec + Number(time.sec))
 
-      const buf = Buffer.alloc(8);
-      buf.writeBigUint64BE(data64); // unsigned
-      handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf);
-    } 
+      const buf = Buffer.alloc(8)
+      buf.writeBigUint64BE(data64) // unsigned
+      handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf)
+    }
   } else {
     // timestamp 96
-    const buf = Buffer.alloc(12);
-    buf.writeUint32BE(time.nsec); // unsigned
-    buf.writeBigInt64BE(BigInt(time.sec), 4);// signed
-    handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf);
+    const buf = Buffer.alloc(12)
+    buf.writeUint32BE(time.nsec) // unsigned
+    buf.writeBigInt64BE(BigInt(time.sec), 4)// signed
+    handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf)
   }
 }
 
@@ -374,69 +370,62 @@ function handleTimestamp(byteArray, date) {
  * @param {ByteArray} byteArray
  * @param {Number} type
  * @param {ArrayBuffer|Buffer} data
- * @returns 
+ * @returns
  */
-function handleExt(byteArray, type, data) {
+function handleExt (byteArray, type, data) {
   if (data instanceof ArrayBuffer) {
-    data = Buffer.from(data);
+    data = Buffer.from(data)
   }
-  const byteLength = data.byteLength;
+  const byteLength = data.byteLength
 
   // fixint
   if (byteLength === 1) {
-    byteArray.writeUint8(FIXEXT1_PREFIX);
-    byteArray.writeInt8(type);
-    byteArray.writeBuffer(data);
-    return;
-
+    byteArray.writeUint8(FIXEXT1_PREFIX)
+    byteArray.writeInt8(type)
+    byteArray.writeBuffer(data)
+    return
   } else if (byteLength === 2) {
-    byteArray.writeUint8(FIXEXT2_PREFIX);
-    byteArray.writeInt8(type);
-    byteArray.writeBuffer(data);
-    return;
-
+    byteArray.writeUint8(FIXEXT2_PREFIX)
+    byteArray.writeInt8(type)
+    byteArray.writeBuffer(data)
+    return
   } else if (byteLength === 4) {
-    byteArray.writeUint8(FIXEXT4_PREFIX);
-    byteArray.writeInt8(type);
-    byteArray.writeBuffer(data);
-    return;
-
+    byteArray.writeUint8(FIXEXT4_PREFIX)
+    byteArray.writeInt8(type)
+    byteArray.writeBuffer(data)
+    return
   } else if (byteLength === 8) {
-    byteArray.writeUint8(FIXEXT8_PREFIX);
-    byteArray.writeInt8(type);
-    byteArray.writeBuffer(data);
-    return;
-
+    byteArray.writeUint8(FIXEXT8_PREFIX)
+    byteArray.writeInt8(type)
+    byteArray.writeBuffer(data)
+    return
   } else if (byteLength === 16) {
-    byteArray.writeUint8(FIXEXT16_PREFIX);
-    byteArray.writeInt8(type);
-    byteArray.writeBuffer(data);
-    return;
+    byteArray.writeUint8(FIXEXT16_PREFIX)
+    byteArray.writeInt8(type)
+    byteArray.writeBuffer(data)
+    return
   }
 
   // ext 8
-  if (byteLength <= 2**8-1) {
-    byteArray.writeUint8(EXT8_PREFIX);
-    byteArray.writeUint8(byteLength);
-    byteArray.writeInt8(type);
-    byteArray.writeBuffer(data);
-    return;
-
-  } else if (byteLength <= 2**16-1) {
-    byteArray.writeUint8(EXT16_PREFIX);
-    byteArray.writeUint16(byteLength);
-    byteArray.writeInt8(type);
-    byteArray.writeBuffer(data);
-    return;
-
-  } else if (byteLength <= 2**32-1) {
-    byteArray.writeUint8(EXT32_PREFIX);
-    byteArray.writeUint32(byteLength);
-    byteArray.writeInt8(type);
-    byteArray.writeBuffer(data);
-    return;
-
+  if (byteLength <= 2 ** 8 - 1) {
+    byteArray.writeUint8(EXT8_PREFIX)
+    byteArray.writeUint8(byteLength)
+    byteArray.writeInt8(type)
+    byteArray.writeBuffer(data)
+    return
+  } else if (byteLength <= 2 ** 16 - 1) {
+    byteArray.writeUint8(EXT16_PREFIX)
+    byteArray.writeUint16(byteLength)
+    byteArray.writeInt8(type)
+    byteArray.writeBuffer(data)
+    return
+  } else if (byteLength <= 2 ** 32 - 1) {
+    byteArray.writeUint8(EXT32_PREFIX)
+    byteArray.writeUint32(byteLength)
+    byteArray.writeInt8(type)
+    byteArray.writeBuffer(data)
+    return
   }
 
-  throw new Error("Ext does not support data exceeding 2**32-1 bytes.");
+  throw new Error('Ext does not support data exceeding 2**32-1 bytes.')
 }
