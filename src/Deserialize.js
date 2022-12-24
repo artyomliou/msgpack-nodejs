@@ -33,19 +33,16 @@ module.exports = function messagePackDeserialize(srcBuffer, debug = false) {
 
   let pos = 0;
   while (pos < view.byteLength) {
+
     res = new TypedValueResolver(view, pos);
     if (debug) {
       console.log(`pos = ${pos}, type = ${res.type}, val = ${res.value}, byteLength = ${res.byteLength}`);
     }
 
+    // Move position, based on reported scanned bytes
     pos += res.byteLength;
-    if (typeof res.value === 'undefined') {
-      break;
-    }
-    if (res.type === 0) {
-      break;
-    }
     
+    // Push value into current structure, if there's one
     if (cur?.isMap) {
       if (!mapKey) {
         if (res.type !== TypedValueResolver.typeStr) {
@@ -57,14 +54,12 @@ module.exports = function messagePackDeserialize(srcBuffer, debug = false) {
         mapKey = null;
         cur.elementsLeft--;
       }
-
     } else if (cur?.isArray) {
       cur.ref.push(res.value);
       cur.elementsLeft--;
-
     }
 
-    // If resolved value is map/array, in order to push subsequent resolved value in, we must switch context into this map/array.
+    // For a new map/array, in order to push subsequent resolved value in, we must switch context into this map/array.
     if (res.type === TypedValueResolver.typeMap || res.type === TypedValueResolver.typeArray) {
       if (cur) {
         contextStack.push(cur);
@@ -73,7 +68,7 @@ module.exports = function messagePackDeserialize(srcBuffer, debug = false) {
     }
 
     // If a map/array has all elements belonging to it, leave current context.  
-    if (cur?.elementsLeft === 0 && contextStack.length) {
+    while (cur?.elementsLeft === 0 && contextStack.length) {
       cur = contextStack.pop();
     }
   }
@@ -84,8 +79,5 @@ module.exports = function messagePackDeserialize(srcBuffer, debug = false) {
   }
 
   // If stack is not empty, return ref of first element
-  if (contextStack.length) {
-    return contextStack[0].ref;
-  }
   return cur.ref;
 };

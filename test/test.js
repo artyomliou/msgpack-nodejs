@@ -202,7 +202,7 @@ describe('Serializer', () => {
         new Date(-1, 0),
       ];
       for (const v of values) {
-        assert.deepEqual(deserialize(serialize(v, true), true), v);
+        assert.deepEqual(deserialize(serialize(v)), v);
       }
     })
 
@@ -213,7 +213,7 @@ describe('Serializer', () => {
     it('array', () => {
       const values = [
         [],
-        [[]],
+        [[[[]]]],
         [[],[],[]],
         [{},{},{}],
         [[{"a": [{}]}]],

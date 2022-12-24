@@ -17,7 +17,6 @@ module.exports = class TimeSpec {
     if (typeof sec == 'bigint') {
       sec = Number(sec);
     }
-    console.debug([sec, nsec]);
     this.sec = sec;
     this.nsec = nsec;
   }
