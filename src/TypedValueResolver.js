@@ -418,20 +418,24 @@ module.exports = class TypedValueResolver {
     // [Important] Because Javascript does not support nanoseconds, so nanoseconds will be discard.
     if (extType === EXT_TYPE_TIMESTAMP) {
       if (data.byteLength === 4) {
-        const sec = (new DataView(data)).getUint8(0);
-        this.value = new TimeSpec(sec, 0);
+        console.debug('[de] timestamp 32');
+        const sec = (new DataView(data)).getUint32(0, false);
+        this.value = new TimeSpec(sec, 0).toDate();
 
       } else if (data.byteLength === 8) {
+        console.debug('[de] timestamp 64');
         const view = new DataView(data);
-        const nsec = view.getUint32(0, false);
         const sec = view.getUint32(4, false);
-        this.value = new TimeSpec(sec, nsec);
+        const data64 = Number(view.getBigUint64(0, false));
+        const nsec = (data64 - sec) / (2 ** 31);
+        this.value = new TimeSpec(sec, nsec).toDate();
 
       } else if (data.byteLength === 12) {
+        console.debug('[de] timestamp 96');
         const view = new DataView(data);
         const nsec = view.getUint32(0, false);
-        const sec = view.getBigInt64(4, false);
-        this.value = new TimeSpec(sec, nsec);
+        const sec = Number(view.getBigInt64(4, false)); // signed
+        this.value = new TimeSpec(sec, nsec).toDate();
 
       } else {
         throw new Error(`Timestamp family only supports 32/64/96 bit.`);

@@ -335,27 +335,37 @@ function handleTimestamp(byteArray, date) {
   if (time.nsec > 1000000000) {
     throw new Error("Nanoseconds cannot be larger than 999999999.");
   }
-  if (time.sec >= 0) {
+  
+  if (time.sec >= 0 && time.sec <= 2 ** 32) {
+    // (spec pseudo code: ```data64 & 0xffffffff00000000L == 0```)
+    // It is basically doing masking on the data64 variable, which only keep nsec, and decide if it equals to 0. 
     if (time.nsec == 0) {
       // timestamp 32
-      const buf = new ArrayBuffer(4);
-      const view = new DataView(buf);
-      view.setUint32(0, time.sec, false); // unsigned
+      const buf = Buffer.alloc(4);
+      buf.writeUint32BE(Number(time.sec));// unsigned
       handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf);
     } else {
       // timestamp 64
-      const buf = new ArrayBuffer(8);
-      const view = new DataView(buf);
-      view.setUint32(0, time.nsec, false); // unsigned
-      view.setUint32(4, time.sec, false); // unsigned
+      // (spec pseudo code: ```uint64_t data64 = (time.tv_nsec << 34) | time.tv_sec;```)
+      // While spec requires bitwise operation on uint64, but it's not possible for javascript,
+      // because either left-shift or right-shift will turn both left and right operand into 32-bit data.
+      // But it's possible to use multiply instead.
+      // While all number in javascript are 64-bit and it can hold up to 53-bit mantissa, 
+      // but nsec ranges from 0 ~ 999*1000000, if it were log by 2, we got 29, since it's below 53, so it's safe.
+      // https://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number
+      // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift
+      const shiftedNsec = (time.nsec * 2 ** 31);
+      const data64 = BigInt(shiftedNsec + Number(time.sec));
+
+      const buf = Buffer.alloc(8);
+      buf.writeBigUint64BE(data64); // unsigned
       handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf);
     } 
   } else {
     // timestamp 96
-    const buf = new ArrayBuffer(12);
-    const view = new DataView(buf);
-    view.setUint32(0, time.nsec, false); // unsigned
-    view.setBigInt64(0, BigInt(time.sec), false); // signed
+    const buf = Buffer.alloc(12);
+    buf.writeUint32BE(time.nsec); // unsigned
+    buf.writeBigInt64BE(BigInt(time.sec), 4);// signed
     handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf);
   }
 }

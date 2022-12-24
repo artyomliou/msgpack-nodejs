@@ -16,9 +16,8 @@ After all ```match()``` were executed, this ByteArray will be concatenated and r
 
 ### Deserialization implementation detail
 There's 2 files handling with different concerns.
-- [Deserializer](blob/main/src/Deserialize.js) utlizes [TypedValueResolver](blob/main/src/TypedValueResolver.js) for resolving typed value. If it's a map/array, initialize a new [StructContext](blob/main/src/StructContext.js) and push subsequent values into it, with the limit of elements that it could have. If this limit matches, leave current context, pop previous context from stack.
+- [Deserializer](blob/main/src/Deserialize.js) will compose typed values in proper structure. It utlizes [TypedValueResolver](blob/main/src/TypedValueResolver.js) for resolving typed value. If it get a map/array, then initialize a new [StructContext](blob/main/src/StructContext.js) and push subsequent values into the structure (map/array), with the maximum limit of elements that it could possess. If this limit were met, leave current context, pop previous context from stack.
 - [TypedValueResolver](blob/main/src/TypedValueResolver.js) are full of byte resolving logic. To be specific, resolve first byte for type, based on this, we can resolve remaining bytes with type-specific procedure.
- use [DataView](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView) to parse ```srcBuffer``` argument. The resolving logic was encapsulated into .
 
 ### Inspiration
 1. [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) - For better buffer allocating strategy

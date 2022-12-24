@@ -10,13 +10,13 @@ module.exports = function messagePackDeserialize(srcBuffer, debug = false) {
   
   const view = new DataView(srcBuffer.buffer.slice(srcBuffer.byteOffset, srcBuffer.byteOffset + srcBuffer.byteLength));
   if (debug) {
-    console.debug([
-      {var: 'srcBuffer.byteOffset', value: srcBuffer.byteOffset},
-      {var: 'srcBuffer.byteLength', value: srcBuffer.byteLength},
-      {var: 'view.byteOffset', value: view.byteOffset},
-      {var: 'view.byteLength', value: view.byteLength},
-      {var: 'view.buffer.byteLength', value: view.buffer.byteLength},
-    ]);
+    // console.debug([
+    //   {var: 'srcBuffer.byteOffset', value: srcBuffer.byteOffset},
+    //   {var: 'srcBuffer.byteLength', value: srcBuffer.byteLength},
+    //   {var: 'view.byteOffset', value: view.byteOffset},
+    //   {var: 'view.byteLength', value: view.byteLength},
+    //   {var: 'view.buffer.byteLength', value: view.buffer.byteLength},
+    // ]);
   }
 
   /** @type {StructContext[]} */
@@ -64,7 +64,7 @@ module.exports = function messagePackDeserialize(srcBuffer, debug = false) {
 
     }
 
-    // If resolved value is map/array, in order to push preceding resolved value in, we must switch context into this map/array.
+    // If resolved value is map/array, in order to push subsequent resolved value in, we must switch context into this map/array.
     if (res.type === TypedValueResolver.typeMap || res.type === TypedValueResolver.typeArray) {
       if (cur) {
         contextStack.push(cur);

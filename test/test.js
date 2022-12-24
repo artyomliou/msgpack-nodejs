@@ -175,30 +175,34 @@ describe('Serializer', () => {
 
     // timestamp
     it('timestamp 32', () => {
+      const msec = 0;
       const values = [
-        new TimeSpec(0, 0),
-        TimeSpec.fromDate(new Date()).setNsec(0),
+        new Date(2022, 1, 1, 1, 1, 1, msec),
       ];
       for (const v of values) {
         assert.deepEqual(deserialize(serialize(v)), v);
       }
     });
     it('timestamp 64', () => {
+      const msec = 1;
       const values = [
-        new TimeSpec(0, 1),
-        TimeSpec.fromDate(new Date()),
+        new Date(1970, 7, 1, 0, 0, 1, msec),
+        new Date(2077, 0, 1, 0, 0, 1, msec),
       ];
       for (const v of values) {
         assert.deepEqual(deserialize(serialize(v)), v);
       }
     })
     it('timestamp 96', () => {
+      const msec = 123;
       const values = [
-        new TimeSpec(-1, 0),
-        TimeSpec.fromDate(new Date()),
+        new Date(2600, 0),
+        new Date(1800, 0),
+        new Date(0, 0),
+        new Date(-1, 0),
       ];
       for (const v of values) {
-        assert.deepEqual(deserialize(serialize(v)), v);
+        assert.deepEqual(deserialize(serialize(v, true), true), v);
       }
     })
 
