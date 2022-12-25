@@ -1,0 +1,4 @@
+test/**
+dist/**
+.nyc_output/**
+.husky/**

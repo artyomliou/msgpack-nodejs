@@ -1,3 +1,18 @@
-export { default as encode } from './src/Serialize.js'
-export { default as decode } from './src/Deserialize.js'
-export * from './src/constants/index.js'
+import encode from './src/Serialize.js'
+import decode from './src/Deserialize.js'
+import * as constants from './src/constants/index.js'
+
+export {
+  encode,
+  decode,
+  constants
+}
+
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line no-undef
+  window.MessagePackNodejs = {
+    encode,
+    decode,
+    ...constants
+  }
+}

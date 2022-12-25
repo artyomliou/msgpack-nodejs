@@ -7,20 +7,10 @@ This implementation follows [MsgPack Spec](https://github.com/msgpack/msgpack/bl
 
 ---
 
-
-## Prerequisites
-
-1. Node.js
-
-## Installation
-
-1. Fork/Clone
-2. Run `npm i`
-3. Run the tests `npm test`
-
 ## Usage
-Because of the nature that JSON is basically a valid Javascript object, this library aims to transform Javascript object to MessagePack format.  
-
+```
+npm i msgpack-nodejs
+```
 
 ### Serialize
 ```javascript
@@ -34,13 +24,26 @@ decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0x
 // return { compact: true, schema: 0 }
 ```
 
+### Testing
+1. Run ```npm test```
+2. Include ```dist/index.js``` in HTML files as ```test.html``` did
+
+## Compability
+| Env                                          | Executable? |
+|----------------------------------------------|-------------|
+| Firefox 108                                  | ✅          |
+| Node.js 16                                   | ✅          |
+| Node.js 14                                   | ✅          |
+| Node.js 12                                   | ❌          |
+
 ## Limitation
-1. Does not run on browser
-2. Not tested through node.js versions
+1. Does not support stream
+2. Does not support custom extension
 3. Ext family does not have complete test cases for now.
-4. Does not support stream
-5. Does not support custom extension
-6. Does not support float 32, because Javascript float is always 64-bit.
+4. Does not support float 32, because Javascript float is always 64-bit.
+
+## TODO
+1. Migrate to typescript
 
 
 ---
