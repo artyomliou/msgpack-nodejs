@@ -1,30 +1,27 @@
-const { Buffer } = require('node:buffer')
+export default class ByteArray {
+  static blockByteLength = 256
 
-module.exports = class ByteArray {
-  static blockSize = 8192
-
-  #buffers
+  #view
   #pos
 
   constructor () {
-    this.#buffers = Buffer.allocUnsafe(ByteArray.blockSize)
+    this.#view = new DataView(new ArrayBuffer(ByteArray.blockByteLength))
     this.#pos = 0
   }
 
   getBuffer () {
-    return this.#buffers.subarray(0, this.#pos)
+    return this.#view.buffer.slice(0, this.#pos)
   }
 
   #ensureEnoughSpace (byteLength = 0, cb) {
-    if (this.#pos + byteLength >= this.#buffers.byteLength) {
+    if (this.#pos + byteLength >= this.#view.buffer.byteLength) {
       // Calculate new byteLength of whole buffer
-      const currentBlockLength = Math.floor(this.#buffers.byteLength / ByteArray.blockSize)
-      const newBlockLength = currentBlockLength + Math.ceil(byteLength / ByteArray.blockSize)
+      const newBlockLength = Math.ceil((this.#view.buffer.byteLength + byteLength) / ByteArray.blockByteLength) * ByteArray.blockByteLength
 
       // Create new buffer and copy content from original buffer
-      const newBuffer = Buffer.allocUnsafe(newBlockLength * ByteArray.blockSize)
-      this.#buffers.copy(newBuffer, undefined, 0, this.#pos)
-      this.#buffers = newBuffer
+      const newBuffer = new ArrayBuffer(newBlockLength)
+      new Uint8Array(newBuffer).set(new Uint8Array(this.#view.buffer))
+      this.#view = new DataView(newBuffer)
     }
 
     cb()
@@ -32,65 +29,70 @@ module.exports = class ByteArray {
   }
 
   /**
-   * @param {Buffer} buffer
+   * @param {ArrayBuffer} buffer
    */
   writeBuffer (buffer) {
     this.#ensureEnoughSpace(buffer.byteLength, () => {
-      buffer.copy(this.#buffers, this.#pos)
+      // https://stackoverflow.com/a/36312116
+      const view = new Uint8Array(buffer)
+      let localPos = this.#pos
+      for (let i = 0; i < view.length; i++) {
+        this.#view.setUint8(localPos++, view[i])
+      }
     })
   }
 
   writeUint8 (number) {
     this.#ensureEnoughSpace(1, () => {
-      this.#buffers.writeUint8(number, this.#pos)
+      this.#view.setUint8(this.#pos, number)
     })
   }
 
   writeUint16 (number) {
     this.#ensureEnoughSpace(2, () => {
-      this.#buffers.writeUint16BE(number, this.#pos)
+      this.#view.setUint16(this.#pos, number, false)
     })
   }
 
   writeUint32 (number) {
     this.#ensureEnoughSpace(4, () => {
-      this.#buffers.writeUint32BE(number, this.#pos)
+      this.#view.setUint32(this.#pos, number, false)
     })
   }
 
   writeUint64 (number) {
     this.#ensureEnoughSpace(8, () => {
-      this.#buffers.writeBigUint64BE(number, this.#pos)
+      this.#view.setBigUint64(this.#pos, number, false)
     })
   }
 
   writeInt8 (number) {
     this.#ensureEnoughSpace(1, () => {
-      this.#buffers.writeInt8(number, this.#pos)
+      this.#view.setInt8(this.#pos, number)
     })
   }
 
   writeInt16 (number) {
     this.#ensureEnoughSpace(2, () => {
-      this.#buffers.writeInt16BE(number, this.#pos)
+      this.#view.setInt16(this.#pos, number, false)
     })
   }
 
   writeInt32 (number) {
     this.#ensureEnoughSpace(4, () => {
-      this.#buffers.writeInt32BE(number, this.#pos)
+      this.#view.setInt32(this.#pos, number, false)
     })
   }
 
   writeInt64 (number) {
     this.#ensureEnoughSpace(8, () => {
-      this.#buffers.writeBigInt64BE(number, this.#pos)
+      this.#view.setBigInt64(this.#pos, number, false)
     })
   }
 
   writeFloat64 (number) {
     this.#ensureEnoughSpace(8, () => {
-      this.#buffers.writeDoubleBE(number, this.#pos)
+      this.#view.setFloat64(this.#pos, number, false)
     })
   }
 }

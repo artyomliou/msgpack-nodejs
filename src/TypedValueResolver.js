@@ -1,4 +1,4 @@
-const {
+import {
   NIL,
   BOOL_FALSE,
   BOOL_TRUE,
@@ -31,10 +31,10 @@ const {
   MAP16_PREFIX,
   MAP32_PREFIX,
   EXT_TYPE_TIMESTAMP
-} = require('./constants')
-const TimeSpec = require('./TimeSpec')
+} from './constants/index.js'
+import TimeSpec from './TimeSpec.js'
 
-module.exports = class TypedValueResolver {
+export default class TypedValueResolver {
   static typeInt = 1
   static typeNil = 2
   static typeBool = 3
@@ -255,9 +255,7 @@ module.exports = class TypedValueResolver {
 
     // Calculate the range
     const strDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength)
-
-    const txt = new TextDecoder()
-    this.value = txt.decode(view.buffer.slice(strDataRange.start, strDataRange.end))
+    this.value = new TextDecoder().decode(view.buffer.slice(strDataRange.start, strDataRange.end))
   }
 
   /**
@@ -283,7 +281,7 @@ module.exports = class TypedValueResolver {
 
     this.byteLength = 1 + sizeByteLength + dataByteLength
     const binDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength)
-    this.value = Buffer.from(view.buffer.slice(binDataRange.start, binDataRange.end))
+    this.value = view.buffer.slice(binDataRange.start, binDataRange.end)
   }
 
   /**

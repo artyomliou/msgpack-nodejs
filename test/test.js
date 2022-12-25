@@ -1,5 +1,5 @@
-const assert = require('assert')
-const { serialize, deserialize } = require('../index')
+import { encode, decode } from '../index.js'
+import assert from 'assert'
 
 /**
  * Optimized way to create object with many keys
@@ -13,14 +13,14 @@ const generateMap = (size = 1) => {
 describe('Ser/de', () => {
   describe('Primitive value', () => {
     it('nil', () => {
-      assert.deepStrictEqual(deserialize(serialize(null)), null)
+      assert.deepStrictEqual(decode(encode(null)), null)
     })
 
     it('bool true', () => {
-      assert.deepStrictEqual(deserialize(serialize(true)), true)
+      assert.deepStrictEqual(decode(encode(true)), true)
     })
     it('bool false', () => {
-      assert.deepStrictEqual(deserialize(serialize(false)), false)
+      assert.deepStrictEqual(decode(encode(false)), false)
     })
 
     it('integer positive fixint 7-bit', () => {
@@ -30,7 +30,7 @@ describe('Ser/de', () => {
         128
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('integer negative fixint 5-bit', () => {
@@ -39,7 +39,7 @@ describe('Ser/de', () => {
         -32
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('integer uint 8', () => {
@@ -47,7 +47,7 @@ describe('Ser/de', () => {
         2 ** 8 - 1
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('integer uint 16', () => {
@@ -55,7 +55,7 @@ describe('Ser/de', () => {
         2 ** 16 - 1
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('integer uint 32', () => {
@@ -63,7 +63,7 @@ describe('Ser/de', () => {
         2 ** 32 - 1
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('integer uint 64', () => {
@@ -71,7 +71,7 @@ describe('Ser/de', () => {
         BigInt(0x1fffffffffffff)
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('integer int 8', () => {
@@ -80,7 +80,7 @@ describe('Ser/de', () => {
         127
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('integer int 16', () => {
@@ -89,7 +89,7 @@ describe('Ser/de', () => {
         32767
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('integer int 32', () => {
@@ -98,7 +98,7 @@ describe('Ser/de', () => {
         (2 ** 31) - 1
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('integer int 64', () => {
@@ -107,7 +107,7 @@ describe('Ser/de', () => {
         BigInt((2 ** 63) - 1)
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
 
@@ -118,7 +118,7 @@ describe('Ser/de', () => {
         BigInt(Number.MIN_SAFE_INTEGER)
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
 
@@ -127,7 +127,7 @@ describe('Ser/de', () => {
         'a'
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('str 8', () => {
@@ -137,7 +137,7 @@ describe('Ser/de', () => {
         '😂'
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('str 16', () => {
@@ -146,7 +146,7 @@ describe('Ser/de', () => {
         '一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四'
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     // TODO str 32
@@ -154,20 +154,20 @@ describe('Ser/de', () => {
     it('bin 8', () => {
       const values = [
         // basically same as str 8
-        Buffer.from('一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三', 'binary'),
-        Buffer.from('😂')
+        Buffer.from('一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三', 'binary').buffer,
+        Buffer.from('😂').buffer
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('bin 16', () => {
       const values = [
         // basically same as str 16
-        Buffer.from('一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四', 'binary')
+        Buffer.from('一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四', 'binary').buffer
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     // TODO bin 32
@@ -179,7 +179,7 @@ describe('Ser/de', () => {
         new Date(2022, 1, 1, 1, 1, 1, msec)
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('timestamp 64', () => {
@@ -189,7 +189,7 @@ describe('Ser/de', () => {
         new Date(2077, 0, 1, 0, 0, 1, msec)
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('timestamp 96', () => {
@@ -200,7 +200,7 @@ describe('Ser/de', () => {
         new Date(-1, 0)
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
 
@@ -218,7 +218,7 @@ describe('Ser/de', () => {
         [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15] // maximum
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('array 16', () => {
@@ -227,7 +227,7 @@ describe('Ser/de', () => {
         new Array(65535).fill(0) // maximum
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('array 32', () => {
@@ -235,7 +235,7 @@ describe('Ser/de', () => {
         new Array(65536).fill(0) // minimum
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
 
@@ -247,7 +247,7 @@ describe('Ser/de', () => {
         generateMap(15) // maximum
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('map 16', () => {
@@ -256,7 +256,7 @@ describe('Ser/de', () => {
         generateMap(65535) // maximum
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
     it('map 32', () => {
@@ -264,7 +264,7 @@ describe('Ser/de', () => {
         generateMap(65536) // minimum
       ]
       for (const v of values) {
-        assert.deepStrictEqual(deserialize(serialize(v)), v)
+        assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
   })

@@ -4,6 +4,10 @@
 
 This implementation follows [MsgPack Spec](https://github.com/msgpack/msgpack/blob/master/spec.md).  
 
+
+---
+
+
 ## Prerequisites
 
 1. Node.js
@@ -20,13 +24,13 @@ Because of the nature that JSON is basically a valid Javascript object, this lib
 
 ### Serialize
 ```javascript
-serialize({ "compact": true, "schema": 0 });
+encode({ "compact": true, "schema": 0 });
 // return <Buffer 82 a7 63 6f 6d 70 61 63 74 c3 a6 73 63 68 65 6d 61 00>
 ```
 
 ### Deserialize
 ```javascript
-deserialize(Buffer.from([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, ]));
+decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, ]));
 // return { compact: true, schema: 0 }
 ```
 
@@ -34,7 +38,12 @@ deserialize(Buffer.from([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 
 - Ext family does not have complete test cases for now.
 - Does not support float 32, because Javascript float is always 64-bit.
 - Does not support stream
+- Does not support custom extension
 - Does not run on browser
+
+
+---
+
 
 ## Implementation detail
 ### Serialization
@@ -66,7 +75,9 @@ There's 2 files handling with different concerns.
 - Another unit test framework - [Mocha](https://mochajs.org/)
 - Another coding style formatter and linter - [StandardJS](https://standardjs.com/index.html)
 - Pre-commit tool - [Husky](https://github.com/typicode/husky)
-
+  
+  
+  
 # References
 - [[JS] TypedArray, ArrayBuffer 和 DataView](https://pjchender.dev/javascript/js-typedarray-buffer-dataview/)
 - [使用ESLint, Prettier, Husky, Lint-staged以及Commitizen提升專案品質及一致性](https://medium.com/@danielhu95/set-up-eslint-pipeline-zh-tw-990d7d9eb68e)

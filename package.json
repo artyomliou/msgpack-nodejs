@@ -2,6 +2,7 @@
   "name": "msgpack-nodejs",
   "version": "1.0.0",
   "description": "Node.js implementation of MessagePack encoder/decoder",
+  "type": "module",
   "main": "index.js",
   "directories": {
     "test": "test"

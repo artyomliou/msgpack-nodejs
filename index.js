@@ -1,3 +1,3 @@
-module.exports.serialize = require('./src/Serialize')
-module.exports.deserialize = require('./src/Deserialize')
-module.exports.constants = require('./src/constants')
+export { default as encode } from './src/Serialize.js'
+export { default as decode } from './src/Deserialize.js'
+export * from './src/constants/index.js'

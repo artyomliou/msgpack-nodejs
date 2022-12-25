@@ -1,23 +1,12 @@
-const StructContext = require('./StructContext')
-const TypedValueResolver = require('./TypedValueResolver')
+import StructContext from './StructContext.js'
+import TypedValueResolver from './TypedValueResolver.js'
 
 /**
- * @param {Buffer} srcBuffer
+ * @param {ArrayBuffer} srcBuffer
  * @param {boolean} debug
  */
-module.exports = function messagePackDeserialize (srcBuffer, debug = false) {
-  // It's important to slice() the srcBuffer, otherwise, you may get dirty data
-
-  const view = new DataView(srcBuffer.buffer.slice(srcBuffer.byteOffset, srcBuffer.byteOffset + srcBuffer.byteLength))
-  if (debug) {
-    // console.debug([
-    //   {var: 'srcBuffer.byteOffset', value: srcBuffer.byteOffset},
-    //   {var: 'srcBuffer.byteLength', value: srcBuffer.byteLength},
-    //   {var: 'view.byteOffset', value: view.byteOffset},
-    //   {var: 'view.byteLength', value: view.byteLength},
-    //   {var: 'view.buffer.byteLength', value: view.buffer.byteLength},
-    // ]);
-  }
+export default function messagePackDeserialize (srcBuffer, debug = false) {
+  const view = new DataView(srcBuffer)
 
   /** @type {StructContext[]} */
   const contextStack = []

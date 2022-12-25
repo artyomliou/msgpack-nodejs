@@ -1,5 +1,5 @@
-const ByteArray = require('./ByteArray')
-const {
+import ByteArray from './ByteArray.js'
+import {
   NIL,
   BOOL_FALSE,
   BOOL_TRUE,
@@ -32,14 +32,14 @@ const {
   MAP16_PREFIX,
   MAP32_PREFIX,
   EXT_TYPE_TIMESTAMP
-} = require('./constants')
-const TimeSpec = require('./TimeSpec')
+} from './constants/index.js'
+import TimeSpec from './TimeSpec.js'
 
 /**
  * @param {Object} srcObject
  * @param {boolean} debug
  */
-module.exports = function messagePackSerialize (srcObject, debug = false) {
+export default function messagePackSerialize (srcObject, debug = false) {
   const byteArray = new ByteArray()
   match(byteArray, srcObject)
 
@@ -86,7 +86,7 @@ function match (byteArray, val) {
         handleTimestamp(byteArray, val)
         break
       }
-      if (Buffer.isBuffer(val)) {
+      if (val instanceof ArrayBuffer) {
         handleBuffer(byteArray, val)
         break
       }
@@ -206,7 +206,7 @@ function handleFloat (byteArray, number = 0) {
  * @returns
  */
 function handleString (byteArray, string = '') {
-  const strBuf = Buffer.from(string, 'utf-8')
+  const strBuf = new TextEncoder().encode(string)
   const bytesCount = strBuf.byteLength
   if (bytesCount <= 31) {
     byteArray.writeUint8(0b10100000 + bytesCount)
@@ -337,9 +337,9 @@ function handleTimestamp (byteArray, date) {
     // It is basically doing masking on the data64 variable, which only keep nsec, and decide if it equals to 0.
     if (time.nsec === 0) {
       // timestamp 32
-      const buf = Buffer.alloc(4)
-      buf.writeUint32BE(Number(time.sec))// unsigned
-      handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf)
+      const view = new DataView(new ArrayBuffer(4))
+      view.setUint32(0, Number(time.sec), false) // unsigned
+      handleExt(byteArray, EXT_TYPE_TIMESTAMP, view.buffer)
     } else {
       // timestamp 64
       // (spec pseudo code: ```uint64_t data64 = (time.tv_nsec << 34) | time.tv_sec;```)
@@ -353,29 +353,26 @@ function handleTimestamp (byteArray, date) {
       const shiftedNsec = (time.nsec * 2 ** 31)
       const data64 = BigInt(shiftedNsec + Number(time.sec))
 
-      const buf = Buffer.alloc(8)
-      buf.writeBigUint64BE(data64) // unsigned
-      handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf)
+      const view = new DataView(new ArrayBuffer(8))
+      view.setBigUint64(0, data64, false) // unsigned
+      handleExt(byteArray, EXT_TYPE_TIMESTAMP, view.buffer)
     }
   } else {
     // timestamp 96
-    const buf = Buffer.alloc(12)
-    buf.writeUint32BE(time.nsec) // unsigned
-    buf.writeBigInt64BE(BigInt(time.sec), 4)// signed
-    handleExt(byteArray, EXT_TYPE_TIMESTAMP, buf)
+    const view = new DataView(new ArrayBuffer(12))
+    view.setUint32(0, time.nsec, false) // unsigned
+    view.setBigInt64(4, BigInt(time.sec), false)// signed
+    handleExt(byteArray, EXT_TYPE_TIMESTAMP, view.buffer)
   }
 }
 
 /**
  * @param {ByteArray} byteArray
  * @param {Number} type
- * @param {ArrayBuffer|Buffer} data
+ * @param {ArrayBuffer} data
  * @returns
  */
 function handleExt (byteArray, type, data) {
-  if (data instanceof ArrayBuffer) {
-    data = Buffer.from(data)
-  }
   const byteLength = data.byteLength
 
   // fixint

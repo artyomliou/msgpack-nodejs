@@ -1,4 +1,4 @@
-module.exports = class TimeSpec {
+export default class TimeSpec {
   /**
    * @param {Date} date
    */
