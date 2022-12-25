@@ -100,7 +100,7 @@ function match (byteArray, val) {
 
       // Handling typical object
       handleMap(byteArray, val)
-      for (const [k, v] of Object.entries(val)) {
+      for (const [k, v] of (val instanceof Map ? val.entries() : Object.entries(val))) {
         handleString(byteArray, k)
         match(byteArray, v)
       }
@@ -213,23 +213,28 @@ function handleString (byteArray, string = '') {
     byteArray.writeBuffer(strBuf)
     return
   }
-  if (bytesCount <= (2 ** 8) - 1) {
+  // (2 ** 8) - 1
+  if (bytesCount < 0xFF) {
     byteArray.writeUint8(STR8_PREFIX)
     byteArray.writeUint8(bytesCount)
     byteArray.writeBuffer(strBuf)
     return
   }
-  if (bytesCount <= (2 ** 16) - 1) {
+  // (2 ** 16) - 1
+  if (bytesCount < 0xFFFF) {
     byteArray.writeUint8(STR16_PREFIX)
     byteArray.writeUint16(bytesCount)
     byteArray.writeBuffer(strBuf)
     return
   }
-  if (bytesCount <= (2 ** 32) - 1) {
+  // (2 ** 32) - 1
+  if (bytesCount < 0xFFFFFFFF) {
     byteArray.writeUint8(STR32_PREFIX)
     byteArray.writeUint32(bytesCount)
     byteArray.writeBuffer(strBuf)
+    return
   }
+  throw new Error('Length of string value cannot exceed (2^32)-1.')
 }
 
 /**
@@ -239,23 +244,28 @@ function handleString (byteArray, string = '') {
  */
 function handleBuffer (byteArray, buffer) {
   const bytesCount = buffer.byteLength
-  if (bytesCount <= (2 ** 8) - 1) {
+  // (2 ** 8) - 1
+  if (bytesCount < 0xFF) {
     byteArray.writeUint8(BIN8_PREFIX)
     byteArray.writeUint8(bytesCount)
     byteArray.writeBuffer(buffer)
     return
   }
-  if (bytesCount <= (2 ** 16) - 1) {
+  // (2 ** 16) - 1
+  if (bytesCount < 0xFFFF) {
     byteArray.writeUint8(BIN16_PREFIX)
     byteArray.writeUint16(bytesCount)
     byteArray.writeBuffer(buffer)
     return
   }
-  if (bytesCount <= (2 ** 32) - 1) {
+  // (2 ** 32) - 1
+  if (bytesCount < 0xFFFFFFFF) {
     byteArray.writeUint8(BIN32_PREFIX)
     byteArray.writeUint32(bytesCount)
     byteArray.writeBuffer(buffer)
+    return
   }
+  throw new Error('Length of binary value cannot exceed (2^32)-1.')
 }
 
 /**
@@ -286,16 +296,16 @@ function handleArray (byteArray, array = {}) {
     return
   }
 
-  throw new Error('Cannot handle array with more than (2^32)-1 elements.')
+  throw new Error('Number of elements cannot exceed (2^32)-1.')
 }
 
 /**
  * @param {ByteArray} byteArray
- * @param {Object} map
+ * @param {Object|Map} map
  * @returns
  */
 function handleMap (byteArray, map = {}) {
-  const mapSize = Object.keys(map).length
+  const mapSize = map instanceof Map ? map.size : Object.keys(map).length
 
   // fixmap
   if (mapSize < 0xF) {
@@ -317,7 +327,7 @@ function handleMap (byteArray, map = {}) {
     return
   }
 
-  throw new Error('Cannot handle map with more than (2^32)-1 pairs.')
+  throw new Error('Number of pairs cannot exceed (2^32)-1.')
 }
 
 /**
@@ -332,7 +342,8 @@ function handleTimestamp (byteArray, date) {
     throw new Error('Nanoseconds cannot be larger than 999999999.')
   }
 
-  if (time.sec >= 0 && time.sec <= 2 ** 32) {
+  // 0 ~ 2 ** 32
+  if (time.sec >= 0 && time.sec <= 0xFFFFFFFF) {
     // (spec pseudo code: ```data64 & 0xffffffff00000000L == 0```)
     // It is basically doing masking on the data64 variable, which only keep nsec, and decide if it equals to 0.
     if (time.nsec === 0) {
@@ -347,7 +358,7 @@ function handleTimestamp (byteArray, date) {
       // because either left-shift or right-shift will turn both left and right operand into 32-bit data.
       // But it's possible to use multiply instead.
       // While all number in javascript are 64-bit and it can hold up to 53-bit mantissa,
-      // but nsec ranges from 0 ~ 999*1000000, if it were log by 2, we got 29, since it's below 53, so it's safe.
+      // but nsec ranges from (0 ~ 999) * 1000000, if it were log by 2, we got 29, since it's below 53, so it's safe.
       // https://stackoverflow.com/questions/337355/javascript-bitwise-shift-of-long-long-number
       // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift
       const shiftedNsec = (time.nsec * 2 ** 31)
@@ -404,19 +415,19 @@ function handleExt (byteArray, type, data) {
   }
 
   // ext 8
-  if (byteLength <= 2 ** 8 - 1) {
+  if (byteLength < 0xFF) {
     byteArray.writeUint8(EXT8_PREFIX)
     byteArray.writeUint8(byteLength)
     byteArray.writeInt8(type)
     byteArray.writeBuffer(data)
     return
-  } else if (byteLength <= 2 ** 16 - 1) {
+  } else if (byteLength < 0xFFFF) {
     byteArray.writeUint8(EXT16_PREFIX)
     byteArray.writeUint16(byteLength)
     byteArray.writeInt8(type)
     byteArray.writeBuffer(data)
     return
-  } else if (byteLength <= 2 ** 32 - 1) {
+  } else if (byteLength < 0xFFFFFFFF) {
     byteArray.writeUint8(EXT32_PREFIX)
     byteArray.writeUint32(byteLength)
     byteArray.writeInt8(type)

@@ -267,5 +267,14 @@ describe('Ser/de', () => {
         assert.deepStrictEqual(decode(encode(v)), v)
       }
     })
+    it('map Map()', () => {
+      const values = [
+        [new Map(), {}],
+        [new Map([[1, 1]]), { 1: 1 }]
+      ]
+      for (const [map, obj] of values) {
+        assert.deepStrictEqual(decode(encode(map)), obj)
+      }
+    })
   })
 })
