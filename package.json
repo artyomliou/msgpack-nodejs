@@ -2,6 +2,10 @@
   "name": "msgpack-nodejs",
   "version": "1.0.0",
   "description": "Node.js implementation of MessagePack encoder/decoder",
+  "keywords": [
+    "msgpack",
+    "messagepack"
+  ],
   "type": "module",
   "main": "index.js",
   "directories": {
@@ -24,6 +28,9 @@
     "testcov": "nyc --reporter=text mocha",
     "lint": "standard",
     "prepare": "husky install"
+  },
+  "engines": {
+    "node": ">=14"
   },
   "repository": {
     "type": "git",

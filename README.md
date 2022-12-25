@@ -35,11 +35,12 @@ decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0x
 ```
 
 ## Limitation
-- Ext family does not have complete test cases for now.
-- Does not support float 32, because Javascript float is always 64-bit.
-- Does not support stream
-- Does not support custom extension
-- Does not run on browser
+1. Does not run on browser
+2. Not tested through node.js versions
+3. Ext family does not have complete test cases for now.
+4. Does not support stream
+5. Does not support custom extension
+6. Does not support float 32, because Javascript float is always 64-bit.
 
 
 ---

@@ -10,7 +10,7 @@ const generateMap = (size = 1) => {
   return Object.fromEntries(pairs)
 }
 
-describe('Ser/de', () => {
+describe('Unit test', () => {
   describe('Primitive value', () => {
     it('nil', () => {
       assert.deepStrictEqual(decode(encode(null)), null)
