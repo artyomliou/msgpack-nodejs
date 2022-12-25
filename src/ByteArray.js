@@ -1,11 +1,5 @@
 const { Buffer } = require('node:buffer')
 
-/**
- * @ref https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray
- * @ref https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/DataView
- * @ref https://nodejs.org/api/buffer.html
- * @ref https://pjchender.dev/javascript/js-typedarray-buffer-dataview/
- */
 module.exports = class ByteArray {
   static blockSize = 8192
 
