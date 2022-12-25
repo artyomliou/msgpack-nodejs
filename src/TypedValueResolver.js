@@ -381,9 +381,9 @@ export default class TypedValueResolver {
         return
       }
       if (data.byteLength === 8) {
-        const sec = view.getUint32(4, false)
-        const data64 = Number(view.getBigUint64(0, false))
-        const nsec = (data64 - sec) / (2 ** 31)
+        const data64 = view.getBigUint64(0, false)
+        const nsec = Number(data64 >> 34n)
+        const sec = Number(data64 & 0x00000003ffffffffn)
         this.value = new TimeSpec(sec, nsec).toDate()
         return
       }

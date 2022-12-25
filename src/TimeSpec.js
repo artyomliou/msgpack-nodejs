@@ -9,13 +9,10 @@ export default class TimeSpec {
   }
 
   /**
-   * @param {Number|bigint} sec
+   * @param {Number} sec
    * @param {Number} nsec
    */
   constructor (sec, nsec = 0) {
-    if (typeof sec === 'bigint') {
-      sec = Number(sec)
-    }
     this.sec = sec
     this.nsec = nsec
   }
