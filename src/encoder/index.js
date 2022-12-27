@@ -32,8 +32,8 @@ import {
   MAP16_PREFIX,
   MAP32_PREFIX,
   EXT_TYPE_TIMESTAMP
-} from './constants/index.js'
-import TimeSpec from './TimeSpec.js'
+} from '../constants/index.js'
+import TimeSpec from '../TimeSpec.js'
 
 /**
  * @param {Object} srcObject

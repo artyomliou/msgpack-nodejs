@@ -28,7 +28,7 @@
     return method;
   };
 
-  // src/ByteArray.js
+  // src/encoder/ByteArray.js
   var _view, _pos, _ensureEnoughSpace, ensureEnoughSpace_fn;
   var _ByteArray = class {
     constructor() {
@@ -162,7 +162,7 @@
     }
   };
 
-  // src/Serialize.js
+  // src/encoder/index.js
   function messagePackSerialize(srcObject, debug = false) {
     const byteArray = new ByteArray();
     match(byteArray, srcObject);
@@ -440,7 +440,7 @@
     throw new Error("Ext does not support data exceeding 2**32-1 bytes.");
   }
 
-  // src/StructContext.js
+  // src/decoder/StructContext.js
   var StructContext = class {
     constructor(ref, isMap = true, isArray = false, elementsLeft = 0) {
       this.ref = ref;
@@ -450,7 +450,7 @@
     }
   };
 
-  // src/TypedValueResolver.js
+  // src/decoder/TypedValueResolver.js
   var _handleInteger, handleInteger_fn, _handleNil, handleNil_fn, _handleBool, handleBool_fn, _handleFloat, handleFloat_fn, _handleStr, handleStr_fn, _handleBin, handleBin_fn, _handleArray, handleArray_fn, _handleMap, handleMap_fn, _handleExt, handleExt_fn, _calculateDataRange, calculateDataRange_fn;
   var _TypedValueResolver = class {
     constructor(view, pos = 0) {
@@ -760,7 +760,7 @@
     [FIXEXT16_PREFIX, _TypedValueResolver.typeExt]
   ]));
 
-  // src/Deserialize.js
+  // src/decoder/index.js
   function messagePackDeserialize(srcBuffer, debug = false) {
     const view = new DataView(srcBuffer);
     const contextStack = [];

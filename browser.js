@@ -1,5 +1,5 @@
-import encode from './src/Serialize.js'
-import decode from './src/Deserialize.js'
+import encode from './src/encoder/index.js'
+import decode from './src/decoder/index.js'
 
 export {
   encode,
