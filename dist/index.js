@@ -1,1 +1,815 @@
-(()=>{var dt=Object.defineProperty;var Ot=(n,t,e)=>t in n?dt(n,t,{enumerable:!0,configurable:!0,writable:!0,value:e}):n[t]=e;var Ct=(n,t)=>{for(var e in t)dt(n,e,{get:t[e],enumerable:!0})};var l=(n,t,e)=>(Ot(n,typeof t!="symbol"?t+"":t,e),e),wt=(n,t,e)=>{if(!t.has(n))throw TypeError("Cannot "+e)};var F=(n,t,e)=>(wt(n,t,"read from private field"),e?e.call(n):t.get(n)),E=(n,t,e)=>{if(t.has(n))throw TypeError("Cannot add the same private member more than once");t instanceof WeakSet?t.add(n):t.set(n,e)},A=(n,t,e,i)=>(wt(n,t,"write to private field"),i?i.call(n,e):t.set(n,e),e);var h=(n,t,e)=>(wt(n,t,"access private method"),e);var c,I,x,u,y=class{constructor(){E(this,x);E(this,c,void 0);E(this,I,void 0);A(this,c,new DataView(new ArrayBuffer(y.blockByteLength))),A(this,I,0)}getBuffer(){return F(this,c).buffer.slice(0,F(this,I))}writeBuffer(t){h(this,x,u).call(this,t.byteLength,()=>{let e=new Uint8Array(t),i=F(this,I);for(let s=0;s<e.length;s++)F(this,c).setUint8(i++,e[s])})}writeUint8(t){h(this,x,u).call(this,1,()=>{F(this,c).setUint8(F(this,I),t)})}writeUint16(t){h(this,x,u).call(this,2,()=>{F(this,c).setUint16(F(this,I),t,!1)})}writeUint32(t){h(this,x,u).call(this,4,()=>{F(this,c).setUint32(F(this,I),t,!1)})}writeUint64(t){h(this,x,u).call(this,8,()=>{F(this,c).setBigUint64(F(this,I),t,!1)})}writeInt8(t){h(this,x,u).call(this,1,()=>{F(this,c).setInt8(F(this,I),t)})}writeInt16(t){h(this,x,u).call(this,2,()=>{F(this,c).setInt16(F(this,I),t,!1)})}writeInt32(t){h(this,x,u).call(this,4,()=>{F(this,c).setInt32(F(this,I),t,!1)})}writeInt64(t){h(this,x,u).call(this,8,()=>{F(this,c).setBigInt64(F(this,I),t,!1)})}writeFloat64(t){h(this,x,u).call(this,8,()=>{F(this,c).setFloat64(F(this,I),t,!1)})}},U=y;c=new WeakMap,I=new WeakMap,x=new WeakSet,u=function(t=0,e){if(F(this,I)+t>=F(this,c).buffer.byteLength){let i=Math.ceil((F(this,c).buffer.byteLength+t)/y.blockByteLength)*y.blockByteLength,s=new ArrayBuffer(i);new Uint8Array(s).set(new Uint8Array(F(this,c).buffer)),A(this,c,new DataView(s))}e(),A(this,I,F(this,I)+t)},l(U,"blockByteLength",256);var Xt={};Ct(Xt,{ARRAY16_PREFIX:()=>Q,ARRAY32_PREFIX:()=>W,BIN16_PREFIX:()=>T,BIN32_PREFIX:()=>L,BIN8_PREFIX:()=>P,BOOL_FALSE:()=>et,BOOL_TRUE:()=>R,EXT16_PREFIX:()=>N,EXT32_PREFIX:()=>B,EXT8_PREFIX:()=>d,EXT_TYPE_TIMESTAMP:()=>g,FIXEXT16_PREFIX:()=>K,FIXEXT1_PREFIX:()=>z,FIXEXT2_PREFIX:()=>$,FIXEXT4_PREFIX:()=>j,FIXEXT8_PREFIX:()=>H,FLOAT32_PREFIX:()=>Ft,FLOAT64_PREFIX:()=>_,INT16_PREFIX:()=>O,INT32_PREFIX:()=>C,INT64_PREFIX:()=>Y,INT8_PREFIX:()=>D,MAP16_PREFIX:()=>Z,MAP32_PREFIX:()=>V,NIL:()=>tt,STR16_PREFIX:()=>G,STR32_PREFIX:()=>J,STR8_PREFIX:()=>q,UINT16_PREFIX:()=>M,UINT32_PREFIX:()=>S,UINT64_PREFIX:()=>k,UINT8_PREFIX:()=>m});var tt=192,et=194,R=195,P=196,T=197,L=198,d=199,N=200,B=201,Ft=202,_=203,m=204,M=205,S=206,k=207,D=208,O=209,C=210,Y=211,z=212,$=213,j=214,H=215,K=216,q=217,G=218,J=219,Q=220,W=221,Z=222,V=223,g=-1;var w=class{static fromDate(t){let e=Math.floor(t.valueOf()/1e3),i=(t.valueOf()-e*1e3)*1e6;return new w(e,i)}constructor(t,e=0){this.sec=t,this.nsec=e}toDate(){return new Date(this.sec*1e3+Math.floor(this.nsec/1e6))}};function Ut(n,t=!1){let e=new U;pt(e,n);let i=e.getBuffer();return t&&console.debug(i),i}function pt(n,t){switch(typeof t){case"boolean":Yt(n,t);break;case"bigint":Nt(n,t);break;case"number":Number.isInteger(t)?Nt(n,t):zt(n,t);break;case"string":Bt(n,t);break;case"object":if(t===null){n.writeUint8(192);break}if(t instanceof Date){Kt(n,t);break}if(t instanceof ArrayBuffer){$t(n,t);break}if(Array.isArray(t)){jt(n,t);for(let e of t)pt(n,e);break}Ht(n,t);for(let[e,i]of t instanceof Map?t.entries():Object.entries(t))Bt(n,e),pt(n,i);break;default:console.debug("noop",t);break}}function Yt(n,t=!0){t?n.writeUint8(195):n.writeUint8(194)}function Nt(n,t=0){if(t>=0&&t<=127){n.writeUint8(t);return}if(t<0&&t>=-32){n.writeInt8(t);return}if(t>0){if(t<=255){n.writeUint8(204),n.writeUint8(t);return}if(t<=65535){n.writeUint8(205),n.writeUint16(t);return}if(t<=4294967295){n.writeUint8(206),n.writeUint32(t);return}n.writeUint8(207),n.writeUint64(t);return}if(t<0){if(-t<=255){n.writeUint8(208),n.writeInt8(t);return}if(-t<=65535){n.writeUint8(209),n.writeInt16(t);return}if(-t<=4294967295){n.writeUint8(210),n.writeInt32(t);return}n.writeUint8(211),n.writeInt64(t)}}function zt(n,t=0){n.writeUint8(203),n.writeFloat64(t)}function Bt(n,t=""){let e=new TextEncoder().encode(t),i=e.byteLength;if(i<=31){n.writeUint8(160+i),n.writeBuffer(e);return}if(i<255){n.writeUint8(217),n.writeUint8(i),n.writeBuffer(e);return}if(i<65535){n.writeUint8(218),n.writeUint16(i),n.writeBuffer(e);return}if(i<4294967295){n.writeUint8(219),n.writeUint32(i),n.writeBuffer(e);return}throw new Error("Length of string value cannot exceed (2^32)-1.")}function $t(n,t){let e=t.byteLength;if(e<255){n.writeUint8(196),n.writeUint8(e),n.writeBuffer(t);return}if(e<65535){n.writeUint8(197),n.writeUint16(e),n.writeBuffer(t);return}if(e<4294967295){n.writeUint8(198),n.writeUint32(e),n.writeBuffer(t);return}throw new Error("Length of binary value cannot exceed (2^32)-1.")}function jt(n,t={}){let e=t.length;if(e<15){n.writeUint8(144+e);return}if(e<65535){n.writeUint8(220),n.writeUint16(e);return}if(e<4294967295){n.writeUint8(221),n.writeUint32(e);return}throw new Error("Number of elements cannot exceed (2^32)-1.")}function Ht(n,t={}){let e=t instanceof Map?t.size:Object.keys(t).length;if(e<15){n.writeUint8(128+e);return}if(e<65535){n.writeUint8(222),n.writeUint16(e);return}if(e<4294967295){n.writeUint8(223),n.writeUint32(e);return}throw new Error("Number of pairs cannot exceed (2^32)-1.")}function Kt(n,t){let e=w.fromDate(t);if(e.nsec>1e9)throw new Error("Nanoseconds cannot be larger than 999999999.");if(e.sec>=0&&e.sec<=4294967295)if(e.nsec===0){let i=new DataView(new ArrayBuffer(4));i.setUint32(0,Number(e.sec),!1),gt(n,-1,i.buffer)}else{let i=(BigInt(e.nsec)<<34n)+BigInt(e.sec),s=new DataView(new ArrayBuffer(8));s.setBigUint64(0,i,!1),gt(n,-1,s.buffer)}else{let i=new DataView(new ArrayBuffer(12));i.setUint32(0,e.nsec,!1),i.setBigInt64(4,BigInt(e.sec),!1),gt(n,-1,i.buffer)}}function gt(n,t,e){let i=e.byteLength;if(i===1){n.writeUint8(212),n.writeInt8(t),n.writeBuffer(e);return}else if(i===2){n.writeUint8(213),n.writeInt8(t),n.writeBuffer(e);return}else if(i===4){n.writeUint8(214),n.writeInt8(t),n.writeBuffer(e);return}else if(i===8){n.writeUint8(215),n.writeInt8(t),n.writeBuffer(e);return}else if(i===16){n.writeUint8(216),n.writeInt8(t),n.writeBuffer(e);return}if(i<255){n.writeUint8(199),n.writeUint8(i),n.writeInt8(t),n.writeBuffer(e);return}else if(i<65535){n.writeUint8(200),n.writeUint16(i),n.writeInt8(t),n.writeBuffer(e);return}else if(i<4294967295){n.writeUint8(201),n.writeUint32(i),n.writeInt8(t),n.writeBuffer(e);return}throw new Error("Ext does not support data exceeding 2**32-1 bytes.")}var nt=class{constructor(t,e=!0,i=!1,s=0){this.ref=t,this.isMap=e,this.isArray=i,this.elementsLeft=s}};var b,rt,lt,_t,It,mt,Et,Mt,it,Rt,at,St,st,Pt,ot,Tt,xt,kt,v,ct,o=class{constructor(t,e=0){E(this,b);E(this,lt);E(this,It);E(this,Et);E(this,it);E(this,at);E(this,st);E(this,ot);E(this,xt);E(this,v);l(this,"type",0);l(this,"value",null);l(this,"byteLength",0);l(this,"elementCount",0);let i=t.getUint8(e);e++;let s=o.prefixTypeMap.get(i);if(s)switch(s){case o.typeInt:h(this,b,rt).call(this,t,e,i);return;case o.typeNil:h(this,lt,_t).call(this,t,e,i);return;case o.typeBool:h(this,It,mt).call(this,t,e,i);return;case o.typeFloat:h(this,Et,Mt).call(this,t,e,i);return;case o.typeStr:h(this,it,Rt).call(this,t,e,i);return;case o.typeBin:h(this,at,St).call(this,t,e,i);return;case o.typeArray:h(this,st,Pt).call(this,t,e,i);return;case o.typeMap:h(this,ot,Tt).call(this,t,e,i);return;case o.typeExt:h(this,xt,kt).call(this,t,e,i);return;default:throw new Error("Should match exactly one type.")}if(i>=0&&i<=127)h(this,b,rt).call(this,t,e,i);else if(i>=224&&i<=255)h(this,b,rt).call(this,t,e,i);else if(i>=160&&i<=191)h(this,it,Rt).call(this,t,e,i);else if(i>=144&&i<=159)h(this,st,Pt).call(this,t,e,i);else if(i>=128&&i<=143)h(this,ot,Tt).call(this,t,e,i);else{let f=i.toString(16);throw console.error("Unknown first byte.",f),new Error(`Unknown first byte. (${f})`)}}},r=o;b=new WeakSet,rt=function(t,e,i){this.type=o.typeInt,i>=0&&i<=127?(this.byteLength=1,this.value=t.getUint8(e-1)):i>=224&&i<=255?(this.byteLength=1,this.value=t.getInt8(e-1)):i===204?(this.byteLength=2,this.value=t.getUint8(e)):i===205?(this.byteLength=3,this.value=t.getUint16(e,!1)):i===206?(this.byteLength=5,this.value=t.getUint32(e,!1)):i===207?(this.byteLength=9,this.value=t.getBigUint64(e,!1)):i===208?(this.byteLength=2,this.value=t.getInt8(e)):i===209?(this.byteLength=3,this.value=t.getInt16(e,!1)):i===210?(this.byteLength=5,this.value=t.getInt32(e,!1)):i===211&&(this.byteLength=9,this.value=t.getBigInt64(e,!1))},lt=new WeakSet,_t=function(t,e,i){this.type=o.typeNil,this.byteLength=1,this.value=null},It=new WeakSet,mt=function(t,e,i){this.type=o.typeBool,this.byteLength=1,this.value=i===195},Et=new WeakSet,Mt=function(t,e,i){this.type=o.typeFloat,i===202?(this.byteLength=5,this.value=t.getFloat32(e,!1)):i===203&&(this.byteLength=9,this.value=t.getFloat64(e,!1))},it=new WeakSet,Rt=function(t,e,i){this.type=o.typeStr;let s,f;i>=160&&i<=191?(s=0,f=i-160):i===217?(s=1,f=t.getUint8(e)):i===218?(s=2,f=t.getUint16(e)):i===219&&(s=4,f=t.getUint32(e)),this.byteLength=1+s+f;let a=h(this,v,ct).call(this,e,s,f);this.value=new TextDecoder().decode(t.buffer.slice(a.start,a.end))},at=new WeakSet,St=function(t,e,i){this.type=o.typeBin;let s,f;i===196?(s=1,f=t.getUint8(e)):i===197?(s=2,f=t.getUint16(e)):i===198&&(s=4,f=t.getUint32(e)),this.byteLength=1+s+f;let a=h(this,v,ct).call(this,e,s,f);this.value=t.buffer.slice(a.start,a.end)},st=new WeakSet,Pt=function(t,e,i){this.type=o.typeArray,this.value=[],i>=144&&i<=159?(this.byteLength=1,this.elementCount=i-144):i===220?(this.byteLength=3,this.elementCount=t.getUint16(e)):i===221&&(this.byteLength=5,this.elementCount=t.getUint32(e))},ot=new WeakSet,Tt=function(t,e,i){this.type=o.typeMap,this.value={},i>=128&&i<=143?(this.byteLength=1,this.elementCount=i-128):i===222?(this.byteLength=3,this.elementCount=t.getUint16(e)):i===223&&(this.byteLength=5,this.elementCount=t.getUint32(e))},xt=new WeakSet,kt=function(t,e,i){this.type=o.typeExt;let s,f;i===212?(s=0,f=1):i===213?(s=0,f=2):i===214?(s=0,f=4):i===215?(s=0,f=8):i===216?(s=0,f=16):i===199?(s=1,f=t.getUint8(e)):i===200?(s=2,f=t.getUint16(e)):i===201&&(s=4,f=t.getUint32(e)),this.byteLength=1+s+1+f;let a=t.getInt8(e+s),X=h(this,v,ct).call(this,e,s+1,f),ft=t.buffer.slice(X.start,X.end);if(a===-1){let ht=new DataView(ft);if(ft.byteLength===4){let p=ht.getUint32(0,!1);this.value=new w(p,0).toDate();return}if(ft.byteLength===8){let p=ht.getBigUint64(0,!1),ut=Number(p>>34n),Dt=Number(p&0x00000003ffffffffn);this.value=new w(Dt,ut).toDate();return}if(ft.byteLength===12){let p=ht.getUint32(0,!1),ut=Number(ht.getBigInt64(4,!1));this.value=new w(ut,p).toDate();return}throw new Error("Timestamp family only supports 32/64/96 bit.")}else throw new Error("Does not support unknown ext type.")},v=new WeakSet,ct=function(t,e=0,i=0){return{start:t+e,end:t+e+i}},l(r,"typeInt",1),l(r,"typeNil",2),l(r,"typeBool",3),l(r,"typeFloat",4),l(r,"typeStr",5),l(r,"typeBin",6),l(r,"typeArray",7),l(r,"typeMap",8),l(r,"typeExt",9),l(r,"prefixTypeMap",new Map([[204,o.typeInt],[205,o.typeInt],[206,o.typeInt],[207,o.typeInt],[208,o.typeInt],[209,o.typeInt],[210,o.typeInt],[211,o.typeInt],[192,o.typeNil],[194,o.typeBool],[195,o.typeBool],[202,o.typeFloat],[203,o.typeFloat],[217,o.typeStr],[218,o.typeStr],[219,o.typeStr],[196,o.typeBin],[197,o.typeBin],[198,o.typeBin],[220,o.typeArray],[221,o.typeArray],[222,o.typeMap],[223,o.typeMap],[199,o.typeExt],[200,o.typeExt],[201,o.typeExt],[212,o.typeExt],[213,o.typeExt],[214,o.typeExt],[215,o.typeExt],[216,o.typeExt]]));function Lt(n,t=!1){let e=new DataView(n),i=[],s=null,f=null,a=null,X=0;for(;X<e.byteLength;){if(f=new r(e,X),t&&console.log(`pos = ${X}, type = ${f.type}, val = ${f.value}, byteLength = ${f.byteLength}`),X+=f.byteLength,s!=null&&s.isMap)if(a)a&&(s.ref[a]=f.value,a=null,s.elementsLeft--);else{if(f.type!==r.typeStr)throw new Error("Map key should be a string.");a=f.value}else s!=null&&s.isArray&&(s.ref.push(f.value),s.elementsLeft--);for((f.type===r.typeMap||f.type===r.typeArray)&&(s&&i.push(s),s=new nt(f.value,f.type===r.typeMap,f.type===r.typeArray,f.elementCount));(s==null?void 0:s.elementsLeft)===0&&i.length;)s=i.pop()}return s!=null&&s.ref?s.ref:f.value}typeof window<"u"&&(window.MessagePackNodejs={encode:Ut,decode:Lt,...Xt});})();
+(() => {
+  var __defProp = Object.defineProperty;
+  var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+  var __publicField = (obj, key, value) => {
+    __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
+    return value;
+  };
+  var __accessCheck = (obj, member, msg) => {
+    if (!member.has(obj))
+      throw TypeError("Cannot " + msg);
+  };
+  var __privateGet = (obj, member, getter) => {
+    __accessCheck(obj, member, "read from private field");
+    return getter ? getter.call(obj) : member.get(obj);
+  };
+  var __privateAdd = (obj, member, value) => {
+    if (member.has(obj))
+      throw TypeError("Cannot add the same private member more than once");
+    member instanceof WeakSet ? member.add(obj) : member.set(obj, value);
+  };
+  var __privateSet = (obj, member, value, setter) => {
+    __accessCheck(obj, member, "write to private field");
+    setter ? setter.call(obj, value) : member.set(obj, value);
+    return value;
+  };
+  var __privateMethod = (obj, member, method) => {
+    __accessCheck(obj, member, "access private method");
+    return method;
+  };
+
+  // src/ByteArray.js
+  var _view, _pos, _ensureEnoughSpace, ensureEnoughSpace_fn;
+  var _ByteArray = class {
+    constructor() {
+      __privateAdd(this, _ensureEnoughSpace);
+      __privateAdd(this, _view, void 0);
+      __privateAdd(this, _pos, void 0);
+      __privateSet(this, _view, new DataView(new ArrayBuffer(_ByteArray.blockByteLength)));
+      __privateSet(this, _pos, 0);
+    }
+    getBuffer() {
+      return __privateGet(this, _view).buffer.slice(0, __privateGet(this, _pos));
+    }
+    writeBuffer(buffer) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, buffer.byteLength, () => {
+        const view = new Uint8Array(buffer);
+        let localPos = __privateGet(this, _pos);
+        for (let i = 0; i < view.length; i++) {
+          __privateGet(this, _view).setUint8(localPos++, view[i]);
+        }
+      });
+    }
+    writeUint8(number) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, 1, () => {
+        __privateGet(this, _view).setUint8(__privateGet(this, _pos), number);
+      });
+    }
+    writeUint16(number) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, 2, () => {
+        __privateGet(this, _view).setUint16(__privateGet(this, _pos), number, false);
+      });
+    }
+    writeUint32(number) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, 4, () => {
+        __privateGet(this, _view).setUint32(__privateGet(this, _pos), number, false);
+      });
+    }
+    writeUint64(number) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, 8, () => {
+        __privateGet(this, _view).setBigUint64(__privateGet(this, _pos), number, false);
+      });
+    }
+    writeInt8(number) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, 1, () => {
+        __privateGet(this, _view).setInt8(__privateGet(this, _pos), number);
+      });
+    }
+    writeInt16(number) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, 2, () => {
+        __privateGet(this, _view).setInt16(__privateGet(this, _pos), number, false);
+      });
+    }
+    writeInt32(number) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, 4, () => {
+        __privateGet(this, _view).setInt32(__privateGet(this, _pos), number, false);
+      });
+    }
+    writeInt64(number) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, 8, () => {
+        __privateGet(this, _view).setBigInt64(__privateGet(this, _pos), number, false);
+      });
+    }
+    writeFloat64(number) {
+      __privateMethod(this, _ensureEnoughSpace, ensureEnoughSpace_fn).call(this, 8, () => {
+        __privateGet(this, _view).setFloat64(__privateGet(this, _pos), number, false);
+      });
+    }
+  };
+  var ByteArray = _ByteArray;
+  _view = new WeakMap();
+  _pos = new WeakMap();
+  _ensureEnoughSpace = new WeakSet();
+  ensureEnoughSpace_fn = function(byteLength = 0, cb) {
+    if (__privateGet(this, _pos) + byteLength >= __privateGet(this, _view).buffer.byteLength) {
+      const newBlockLength = Math.ceil((__privateGet(this, _view).buffer.byteLength + byteLength) / _ByteArray.blockByteLength) * _ByteArray.blockByteLength;
+      const newBuffer = new ArrayBuffer(newBlockLength);
+      new Uint8Array(newBuffer).set(new Uint8Array(__privateGet(this, _view).buffer));
+      __privateSet(this, _view, new DataView(newBuffer));
+    }
+    cb();
+    __privateSet(this, _pos, __privateGet(this, _pos) + byteLength);
+  };
+  __publicField(ByteArray, "blockByteLength", 256);
+
+  // src/constants/index.js
+  var NIL = 192;
+  var BOOL_FALSE = 194;
+  var BOOL_TRUE = 195;
+  var BIN8_PREFIX = 196;
+  var BIN16_PREFIX = 197;
+  var BIN32_PREFIX = 198;
+  var EXT8_PREFIX = 199;
+  var EXT16_PREFIX = 200;
+  var EXT32_PREFIX = 201;
+  var FLOAT32_PREFIX = 202;
+  var FLOAT64_PREFIX = 203;
+  var UINT8_PREFIX = 204;
+  var UINT16_PREFIX = 205;
+  var UINT32_PREFIX = 206;
+  var UINT64_PREFIX = 207;
+  var INT8_PREFIX = 208;
+  var INT16_PREFIX = 209;
+  var INT32_PREFIX = 210;
+  var INT64_PREFIX = 211;
+  var FIXEXT1_PREFIX = 212;
+  var FIXEXT2_PREFIX = 213;
+  var FIXEXT4_PREFIX = 214;
+  var FIXEXT8_PREFIX = 215;
+  var FIXEXT16_PREFIX = 216;
+  var STR8_PREFIX = 217;
+  var STR16_PREFIX = 218;
+  var STR32_PREFIX = 219;
+  var ARRAY16_PREFIX = 220;
+  var ARRAY32_PREFIX = 221;
+  var MAP16_PREFIX = 222;
+  var MAP32_PREFIX = 223;
+  var EXT_TYPE_TIMESTAMP = -1;
+
+  // src/TimeSpec.js
+  var TimeSpec = class {
+    static fromDate(date) {
+      const sec = Math.floor(date.valueOf() / 1e3);
+      const nsec = (date.valueOf() - sec * 1e3) * 1e6;
+      return new TimeSpec(sec, nsec);
+    }
+    constructor(sec, nsec = 0) {
+      this.sec = sec;
+      this.nsec = nsec;
+    }
+    toDate() {
+      return new Date(this.sec * 1e3 + Math.floor(this.nsec / 1e6));
+    }
+  };
+
+  // src/Serialize.js
+  function messagePackSerialize(srcObject, debug = false) {
+    const byteArray = new ByteArray();
+    match(byteArray, srcObject);
+    const buffer = byteArray.getBuffer();
+    if (debug) {
+      console.debug(buffer);
+    }
+    return buffer;
+  }
+  function match(byteArray, val) {
+    switch (typeof val) {
+      case "boolean":
+        handleBoolean(byteArray, val);
+        break;
+      case "bigint":
+        handleInteger(byteArray, val);
+        break;
+      case "number":
+        if (Number.isInteger(val)) {
+          handleInteger(byteArray, val);
+        } else {
+          handleFloat(byteArray, val);
+        }
+        break;
+      case "string":
+        handleString(byteArray, val);
+        break;
+      case "object":
+        if (val === null) {
+          byteArray.writeUint8(NIL);
+          break;
+        }
+        if (val instanceof Date) {
+          handleTimestamp(byteArray, val);
+          break;
+        }
+        if (val instanceof ArrayBuffer) {
+          handleBuffer(byteArray, val);
+          break;
+        }
+        if (Array.isArray(val)) {
+          handleArray(byteArray, val);
+          for (const element of val) {
+            match(byteArray, element);
+          }
+          break;
+        }
+        handleMap(byteArray, val);
+        for (const [k, v] of val instanceof Map ? val.entries() : Object.entries(val)) {
+          handleString(byteArray, k);
+          match(byteArray, v);
+        }
+        break;
+      default:
+        console.debug("noop", val);
+        break;
+    }
+  }
+  function handleBoolean(byteArray, val = true) {
+    if (val) {
+      byteArray.writeUint8(BOOL_TRUE);
+    } else {
+      byteArray.writeUint8(BOOL_FALSE);
+    }
+  }
+  function handleInteger(byteArray, number = 0) {
+    if (number >= 0 && number <= 127) {
+      byteArray.writeUint8(number);
+      return;
+    }
+    if (number < 0 && number >= -32) {
+      byteArray.writeInt8(number);
+      return;
+    }
+    if (number > 0) {
+      if (number <= 255) {
+        byteArray.writeUint8(UINT8_PREFIX);
+        byteArray.writeUint8(number);
+        return;
+      }
+      if (number <= 65535) {
+        byteArray.writeUint8(UINT16_PREFIX);
+        byteArray.writeUint16(number);
+        return;
+      }
+      if (number <= 4294967295) {
+        byteArray.writeUint8(UINT32_PREFIX);
+        byteArray.writeUint32(number);
+        return;
+      }
+      byteArray.writeUint8(UINT64_PREFIX);
+      byteArray.writeUint64(number);
+      return;
+    }
+    if (number < 0) {
+      if (-number <= 255) {
+        byteArray.writeUint8(INT8_PREFIX);
+        byteArray.writeInt8(number);
+        return;
+      }
+      if (-number <= 65535) {
+        byteArray.writeUint8(INT16_PREFIX);
+        byteArray.writeInt16(number);
+        return;
+      }
+      if (-number <= 4294967295) {
+        byteArray.writeUint8(INT32_PREFIX);
+        byteArray.writeInt32(number);
+        return;
+      }
+      byteArray.writeUint8(INT64_PREFIX);
+      byteArray.writeInt64(number);
+    }
+  }
+  function handleFloat(byteArray, number = 0) {
+    byteArray.writeUint8(FLOAT64_PREFIX);
+    byteArray.writeFloat64(number);
+  }
+  function handleString(byteArray, string = "") {
+    const strBuf = new TextEncoder().encode(string);
+    const bytesCount = strBuf.byteLength;
+    if (bytesCount <= 31) {
+      byteArray.writeUint8(160 + bytesCount);
+      byteArray.writeBuffer(strBuf);
+      return;
+    }
+    if (bytesCount < 255) {
+      byteArray.writeUint8(STR8_PREFIX);
+      byteArray.writeUint8(bytesCount);
+      byteArray.writeBuffer(strBuf);
+      return;
+    }
+    if (bytesCount < 65535) {
+      byteArray.writeUint8(STR16_PREFIX);
+      byteArray.writeUint16(bytesCount);
+      byteArray.writeBuffer(strBuf);
+      return;
+    }
+    if (bytesCount < 4294967295) {
+      byteArray.writeUint8(STR32_PREFIX);
+      byteArray.writeUint32(bytesCount);
+      byteArray.writeBuffer(strBuf);
+      return;
+    }
+    throw new Error("Length of string value cannot exceed (2^32)-1.");
+  }
+  function handleBuffer(byteArray, buffer) {
+    const bytesCount = buffer.byteLength;
+    if (bytesCount < 255) {
+      byteArray.writeUint8(BIN8_PREFIX);
+      byteArray.writeUint8(bytesCount);
+      byteArray.writeBuffer(buffer);
+      return;
+    }
+    if (bytesCount < 65535) {
+      byteArray.writeUint8(BIN16_PREFIX);
+      byteArray.writeUint16(bytesCount);
+      byteArray.writeBuffer(buffer);
+      return;
+    }
+    if (bytesCount < 4294967295) {
+      byteArray.writeUint8(BIN32_PREFIX);
+      byteArray.writeUint32(bytesCount);
+      byteArray.writeBuffer(buffer);
+      return;
+    }
+    throw new Error("Length of binary value cannot exceed (2^32)-1.");
+  }
+  function handleArray(byteArray, array = {}) {
+    const arraySize = array.length;
+    if (arraySize < 15) {
+      byteArray.writeUint8(144 + arraySize);
+      return;
+    }
+    if (arraySize < 65535) {
+      byteArray.writeUint8(ARRAY16_PREFIX);
+      byteArray.writeUint16(arraySize);
+      return;
+    }
+    if (arraySize < 4294967295) {
+      byteArray.writeUint8(ARRAY32_PREFIX);
+      byteArray.writeUint32(arraySize);
+      return;
+    }
+    throw new Error("Number of elements cannot exceed (2^32)-1.");
+  }
+  function handleMap(byteArray, map = {}) {
+    const mapSize = map instanceof Map ? map.size : Object.keys(map).length;
+    if (mapSize < 15) {
+      byteArray.writeUint8(128 + mapSize);
+      return;
+    }
+    if (mapSize < 65535) {
+      byteArray.writeUint8(MAP16_PREFIX);
+      byteArray.writeUint16(mapSize);
+      return;
+    }
+    if (mapSize < 4294967295) {
+      byteArray.writeUint8(MAP32_PREFIX);
+      byteArray.writeUint32(mapSize);
+      return;
+    }
+    throw new Error("Number of pairs cannot exceed (2^32)-1.");
+  }
+  function handleTimestamp(byteArray, date) {
+    const time = TimeSpec.fromDate(date);
+    if (time.nsec > 1e9) {
+      throw new Error("Nanoseconds cannot be larger than 999999999.");
+    }
+    if (time.sec >= 0 && time.sec <= 4294967295) {
+      if (time.nsec === 0) {
+        const view = new DataView(new ArrayBuffer(4));
+        view.setUint32(0, Number(time.sec), false);
+        handleExt(byteArray, EXT_TYPE_TIMESTAMP, view.buffer);
+      } else {
+        const data64 = (BigInt(time.nsec) << 34n) + BigInt(time.sec);
+        const view = new DataView(new ArrayBuffer(8));
+        view.setBigUint64(0, data64, false);
+        handleExt(byteArray, EXT_TYPE_TIMESTAMP, view.buffer);
+      }
+    } else {
+      const view = new DataView(new ArrayBuffer(12));
+      view.setUint32(0, time.nsec, false);
+      view.setBigInt64(4, BigInt(time.sec), false);
+      handleExt(byteArray, EXT_TYPE_TIMESTAMP, view.buffer);
+    }
+  }
+  function handleExt(byteArray, type, data) {
+    const byteLength = data.byteLength;
+    if (byteLength === 1) {
+      byteArray.writeUint8(FIXEXT1_PREFIX);
+      byteArray.writeInt8(type);
+      byteArray.writeBuffer(data);
+      return;
+    } else if (byteLength === 2) {
+      byteArray.writeUint8(FIXEXT2_PREFIX);
+      byteArray.writeInt8(type);
+      byteArray.writeBuffer(data);
+      return;
+    } else if (byteLength === 4) {
+      byteArray.writeUint8(FIXEXT4_PREFIX);
+      byteArray.writeInt8(type);
+      byteArray.writeBuffer(data);
+      return;
+    } else if (byteLength === 8) {
+      byteArray.writeUint8(FIXEXT8_PREFIX);
+      byteArray.writeInt8(type);
+      byteArray.writeBuffer(data);
+      return;
+    } else if (byteLength === 16) {
+      byteArray.writeUint8(FIXEXT16_PREFIX);
+      byteArray.writeInt8(type);
+      byteArray.writeBuffer(data);
+      return;
+    }
+    if (byteLength < 255) {
+      byteArray.writeUint8(EXT8_PREFIX);
+      byteArray.writeUint8(byteLength);
+      byteArray.writeInt8(type);
+      byteArray.writeBuffer(data);
+      return;
+    } else if (byteLength < 65535) {
+      byteArray.writeUint8(EXT16_PREFIX);
+      byteArray.writeUint16(byteLength);
+      byteArray.writeInt8(type);
+      byteArray.writeBuffer(data);
+      return;
+    } else if (byteLength < 4294967295) {
+      byteArray.writeUint8(EXT32_PREFIX);
+      byteArray.writeUint32(byteLength);
+      byteArray.writeInt8(type);
+      byteArray.writeBuffer(data);
+      return;
+    }
+    throw new Error("Ext does not support data exceeding 2**32-1 bytes.");
+  }
+
+  // src/StructContext.js
+  var StructContext = class {
+    constructor(ref, isMap = true, isArray = false, elementsLeft = 0) {
+      this.ref = ref;
+      this.isMap = isMap;
+      this.isArray = isArray;
+      this.elementsLeft = elementsLeft;
+    }
+  };
+
+  // src/TypedValueResolver.js
+  var _handleInteger, handleInteger_fn, _handleNil, handleNil_fn, _handleBool, handleBool_fn, _handleFloat, handleFloat_fn, _handleStr, handleStr_fn, _handleBin, handleBin_fn, _handleArray, handleArray_fn, _handleMap, handleMap_fn, _handleExt, handleExt_fn, _calculateDataRange, calculateDataRange_fn;
+  var _TypedValueResolver = class {
+    constructor(view, pos = 0) {
+      __privateAdd(this, _handleInteger);
+      __privateAdd(this, _handleNil);
+      __privateAdd(this, _handleBool);
+      __privateAdd(this, _handleFloat);
+      __privateAdd(this, _handleStr);
+      __privateAdd(this, _handleBin);
+      __privateAdd(this, _handleArray);
+      __privateAdd(this, _handleMap);
+      __privateAdd(this, _handleExt);
+      __privateAdd(this, _calculateDataRange);
+      __publicField(this, "type", 0);
+      __publicField(this, "value", null);
+      __publicField(this, "byteLength", 0);
+      __publicField(this, "elementCount", 0);
+      const firstByte = view.getUint8(pos);
+      pos++;
+      const searchResult = _TypedValueResolver.prefixTypeMap.get(firstByte);
+      if (searchResult) {
+        switch (searchResult) {
+          case _TypedValueResolver.typeInt:
+            __privateMethod(this, _handleInteger, handleInteger_fn).call(this, view, pos, firstByte);
+            return;
+          case _TypedValueResolver.typeNil:
+            __privateMethod(this, _handleNil, handleNil_fn).call(this, view, pos, firstByte);
+            return;
+          case _TypedValueResolver.typeBool:
+            __privateMethod(this, _handleBool, handleBool_fn).call(this, view, pos, firstByte);
+            return;
+          case _TypedValueResolver.typeFloat:
+            __privateMethod(this, _handleFloat, handleFloat_fn).call(this, view, pos, firstByte);
+            return;
+          case _TypedValueResolver.typeStr:
+            __privateMethod(this, _handleStr, handleStr_fn).call(this, view, pos, firstByte);
+            return;
+          case _TypedValueResolver.typeBin:
+            __privateMethod(this, _handleBin, handleBin_fn).call(this, view, pos, firstByte);
+            return;
+          case _TypedValueResolver.typeArray:
+            __privateMethod(this, _handleArray, handleArray_fn).call(this, view, pos, firstByte);
+            return;
+          case _TypedValueResolver.typeMap:
+            __privateMethod(this, _handleMap, handleMap_fn).call(this, view, pos, firstByte);
+            return;
+          case _TypedValueResolver.typeExt:
+            __privateMethod(this, _handleExt, handleExt_fn).call(this, view, pos, firstByte);
+            return;
+          default:
+            throw new Error("Should match exactly one type.");
+        }
+      }
+      if (firstByte >= 0 && firstByte <= 127) {
+        __privateMethod(this, _handleInteger, handleInteger_fn).call(this, view, pos, firstByte);
+      } else if (firstByte >= 224 && firstByte <= 255) {
+        __privateMethod(this, _handleInteger, handleInteger_fn).call(this, view, pos, firstByte);
+      } else if (firstByte >= 160 && firstByte <= 191) {
+        __privateMethod(this, _handleStr, handleStr_fn).call(this, view, pos, firstByte);
+      } else if (firstByte >= 144 && firstByte <= 159) {
+        __privateMethod(this, _handleArray, handleArray_fn).call(this, view, pos, firstByte);
+      } else if (firstByte >= 128 && firstByte <= 143) {
+        __privateMethod(this, _handleMap, handleMap_fn).call(this, view, pos, firstByte);
+      } else {
+        const firtByteHex = firstByte.toString(16);
+        console.error("Unknown first byte.", firtByteHex);
+        throw new Error(`Unknown first byte. (${firtByteHex})`);
+      }
+    }
+  };
+  var TypedValueResolver = _TypedValueResolver;
+  _handleInteger = new WeakSet();
+  handleInteger_fn = function(view, pos, firstByte) {
+    this.type = _TypedValueResolver.typeInt;
+    if (firstByte >= 0 && firstByte <= 127) {
+      this.byteLength = 1;
+      this.value = view.getUint8(pos - 1);
+    } else if (firstByte >= 224 && firstByte <= 255) {
+      this.byteLength = 1;
+      this.value = view.getInt8(pos - 1);
+    } else if (firstByte === UINT8_PREFIX) {
+      this.byteLength = 2;
+      this.value = view.getUint8(pos);
+    } else if (firstByte === UINT16_PREFIX) {
+      this.byteLength = 3;
+      this.value = view.getUint16(pos, false);
+    } else if (firstByte === UINT32_PREFIX) {
+      this.byteLength = 5;
+      this.value = view.getUint32(pos, false);
+    } else if (firstByte === UINT64_PREFIX) {
+      this.byteLength = 9;
+      this.value = view.getBigUint64(pos, false);
+    } else if (firstByte === INT8_PREFIX) {
+      this.byteLength = 2;
+      this.value = view.getInt8(pos);
+    } else if (firstByte === INT16_PREFIX) {
+      this.byteLength = 3;
+      this.value = view.getInt16(pos, false);
+    } else if (firstByte === INT32_PREFIX) {
+      this.byteLength = 5;
+      this.value = view.getInt32(pos, false);
+    } else if (firstByte === INT64_PREFIX) {
+      this.byteLength = 9;
+      this.value = view.getBigInt64(pos, false);
+    }
+  };
+  _handleNil = new WeakSet();
+  handleNil_fn = function(view, pos, firstByte) {
+    this.type = _TypedValueResolver.typeNil;
+    this.byteLength = 1;
+    this.value = null;
+  };
+  _handleBool = new WeakSet();
+  handleBool_fn = function(view, pos, firstByte) {
+    this.type = _TypedValueResolver.typeBool;
+    this.byteLength = 1;
+    this.value = firstByte === BOOL_TRUE;
+  };
+  _handleFloat = new WeakSet();
+  handleFloat_fn = function(view, pos, firstByte) {
+    this.type = _TypedValueResolver.typeFloat;
+    if (firstByte === FLOAT32_PREFIX) {
+      this.byteLength = 5;
+      this.value = view.getFloat32(pos, false);
+    } else if (firstByte === FLOAT64_PREFIX) {
+      this.byteLength = 9;
+      this.value = view.getFloat64(pos, false);
+    }
+  };
+  _handleStr = new WeakSet();
+  handleStr_fn = function(view, pos, firstByte) {
+    this.type = _TypedValueResolver.typeStr;
+    let sizeByteLength;
+    let dataByteLength;
+    if (firstByte >= 160 && firstByte <= 191) {
+      sizeByteLength = 0;
+      dataByteLength = firstByte - 160;
+    } else if (firstByte === STR8_PREFIX) {
+      sizeByteLength = 1;
+      dataByteLength = view.getUint8(pos);
+    } else if (firstByte === STR16_PREFIX) {
+      sizeByteLength = 2;
+      dataByteLength = view.getUint16(pos);
+    } else if (firstByte === STR32_PREFIX) {
+      sizeByteLength = 4;
+      dataByteLength = view.getUint32(pos);
+    }
+    this.byteLength = 1 + sizeByteLength + dataByteLength;
+    const strDataRange = __privateMethod(this, _calculateDataRange, calculateDataRange_fn).call(this, pos, sizeByteLength, dataByteLength);
+    this.value = new TextDecoder().decode(view.buffer.slice(strDataRange.start, strDataRange.end));
+  };
+  _handleBin = new WeakSet();
+  handleBin_fn = function(view, pos, firstByte) {
+    this.type = _TypedValueResolver.typeBin;
+    let sizeByteLength;
+    let dataByteLength;
+    if (firstByte === BIN8_PREFIX) {
+      sizeByteLength = 1;
+      dataByteLength = view.getUint8(pos);
+    } else if (firstByte === BIN16_PREFIX) {
+      sizeByteLength = 2;
+      dataByteLength = view.getUint16(pos);
+    } else if (firstByte === BIN32_PREFIX) {
+      sizeByteLength = 4;
+      dataByteLength = view.getUint32(pos);
+    }
+    this.byteLength = 1 + sizeByteLength + dataByteLength;
+    const binDataRange = __privateMethod(this, _calculateDataRange, calculateDataRange_fn).call(this, pos, sizeByteLength, dataByteLength);
+    this.value = view.buffer.slice(binDataRange.start, binDataRange.end);
+  };
+  _handleArray = new WeakSet();
+  handleArray_fn = function(view, pos, firstByte) {
+    this.type = _TypedValueResolver.typeArray;
+    this.value = [];
+    if (firstByte >= 144 && firstByte <= 159) {
+      this.byteLength = 1;
+      this.elementCount = firstByte - 144;
+    } else if (firstByte === ARRAY16_PREFIX) {
+      this.byteLength = 3;
+      this.elementCount = view.getUint16(pos);
+    } else if (firstByte === ARRAY32_PREFIX) {
+      this.byteLength = 5;
+      this.elementCount = view.getUint32(pos);
+    }
+  };
+  _handleMap = new WeakSet();
+  handleMap_fn = function(view, pos, firstByte) {
+    this.type = _TypedValueResolver.typeMap;
+    this.value = {};
+    if (firstByte >= 128 && firstByte <= 143) {
+      this.byteLength = 1;
+      this.elementCount = firstByte - 128;
+    } else if (firstByte === MAP16_PREFIX) {
+      this.byteLength = 3;
+      this.elementCount = view.getUint16(pos);
+    } else if (firstByte === MAP32_PREFIX) {
+      this.byteLength = 5;
+      this.elementCount = view.getUint32(pos);
+    }
+  };
+  _handleExt = new WeakSet();
+  handleExt_fn = function(view, pos, firstByte) {
+    this.type = _TypedValueResolver.typeExt;
+    let sizeByteLength;
+    let dataByteLength;
+    if (firstByte === FIXEXT1_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 1;
+    } else if (firstByte === FIXEXT2_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 2;
+    } else if (firstByte === FIXEXT4_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 4;
+    } else if (firstByte === FIXEXT8_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 8;
+    } else if (firstByte === FIXEXT16_PREFIX) {
+      sizeByteLength = 0;
+      dataByteLength = 16;
+    } else if (firstByte === EXT8_PREFIX) {
+      sizeByteLength = 1;
+      dataByteLength = view.getUint8(pos);
+    } else if (firstByte === EXT16_PREFIX) {
+      sizeByteLength = 2;
+      dataByteLength = view.getUint16(pos);
+    } else if (firstByte === EXT32_PREFIX) {
+      sizeByteLength = 4;
+      dataByteLength = view.getUint32(pos);
+    }
+    this.byteLength = 1 + sizeByteLength + 1 + dataByteLength;
+    const extType = view.getInt8(pos + sizeByteLength);
+    const extDataRange = __privateMethod(this, _calculateDataRange, calculateDataRange_fn).call(this, pos, sizeByteLength + 1, dataByteLength);
+    const data = view.buffer.slice(extDataRange.start, extDataRange.end);
+    if (extType === EXT_TYPE_TIMESTAMP) {
+      const view2 = new DataView(data);
+      if (data.byteLength === 4) {
+        const sec = view2.getUint32(0, false);
+        this.value = new TimeSpec(sec, 0).toDate();
+        return;
+      }
+      if (data.byteLength === 8) {
+        const data64 = view2.getBigUint64(0, false);
+        const nsec = Number(data64 >> 34n);
+        const sec = Number(data64 & 0x00000003ffffffffn);
+        this.value = new TimeSpec(sec, nsec).toDate();
+        return;
+      }
+      if (data.byteLength === 12) {
+        const nsec = view2.getUint32(0, false);
+        const sec = Number(view2.getBigInt64(4, false));
+        this.value = new TimeSpec(sec, nsec).toDate();
+        return;
+      }
+      throw new Error("Timestamp family only supports 32/64/96 bit.");
+    } else {
+      throw new Error("Does not support unknown ext type.");
+    }
+  };
+  _calculateDataRange = new WeakSet();
+  calculateDataRange_fn = function(pos, offset = 0, dataByteLength = 0) {
+    return {
+      start: pos + offset,
+      end: pos + offset + dataByteLength
+    };
+  };
+  __publicField(TypedValueResolver, "typeInt", 1);
+  __publicField(TypedValueResolver, "typeNil", 2);
+  __publicField(TypedValueResolver, "typeBool", 3);
+  __publicField(TypedValueResolver, "typeFloat", 4);
+  __publicField(TypedValueResolver, "typeStr", 5);
+  __publicField(TypedValueResolver, "typeBin", 6);
+  __publicField(TypedValueResolver, "typeArray", 7);
+  __publicField(TypedValueResolver, "typeMap", 8);
+  __publicField(TypedValueResolver, "typeExt", 9);
+  __publicField(TypedValueResolver, "prefixTypeMap", /* @__PURE__ */ new Map([
+    [UINT8_PREFIX, _TypedValueResolver.typeInt],
+    [UINT16_PREFIX, _TypedValueResolver.typeInt],
+    [UINT32_PREFIX, _TypedValueResolver.typeInt],
+    [UINT64_PREFIX, _TypedValueResolver.typeInt],
+    [INT8_PREFIX, _TypedValueResolver.typeInt],
+    [INT16_PREFIX, _TypedValueResolver.typeInt],
+    [INT32_PREFIX, _TypedValueResolver.typeInt],
+    [INT64_PREFIX, _TypedValueResolver.typeInt],
+    [NIL, _TypedValueResolver.typeNil],
+    [BOOL_FALSE, _TypedValueResolver.typeBool],
+    [BOOL_TRUE, _TypedValueResolver.typeBool],
+    [FLOAT32_PREFIX, _TypedValueResolver.typeFloat],
+    [FLOAT64_PREFIX, _TypedValueResolver.typeFloat],
+    [STR8_PREFIX, _TypedValueResolver.typeStr],
+    [STR16_PREFIX, _TypedValueResolver.typeStr],
+    [STR32_PREFIX, _TypedValueResolver.typeStr],
+    [BIN8_PREFIX, _TypedValueResolver.typeBin],
+    [BIN16_PREFIX, _TypedValueResolver.typeBin],
+    [BIN32_PREFIX, _TypedValueResolver.typeBin],
+    [ARRAY16_PREFIX, _TypedValueResolver.typeArray],
+    [ARRAY32_PREFIX, _TypedValueResolver.typeArray],
+    [MAP16_PREFIX, _TypedValueResolver.typeMap],
+    [MAP32_PREFIX, _TypedValueResolver.typeMap],
+    [EXT8_PREFIX, _TypedValueResolver.typeExt],
+    [EXT16_PREFIX, _TypedValueResolver.typeExt],
+    [EXT32_PREFIX, _TypedValueResolver.typeExt],
+    [FIXEXT1_PREFIX, _TypedValueResolver.typeExt],
+    [FIXEXT2_PREFIX, _TypedValueResolver.typeExt],
+    [FIXEXT4_PREFIX, _TypedValueResolver.typeExt],
+    [FIXEXT8_PREFIX, _TypedValueResolver.typeExt],
+    [FIXEXT16_PREFIX, _TypedValueResolver.typeExt]
+  ]));
+
+  // src/Deserialize.js
+  function messagePackDeserialize(srcBuffer, debug = false) {
+    const view = new DataView(srcBuffer);
+    const contextStack = [];
+    let cur = null;
+    let res = null;
+    let mapKey = null;
+    let pos = 0;
+    while (pos < view.byteLength) {
+      res = new TypedValueResolver(view, pos);
+      if (debug) {
+        console.log(`pos = ${pos}, type = ${res.type}, val = ${res.value}, byteLength = ${res.byteLength}`);
+      }
+      pos += res.byteLength;
+      if (cur == null ? void 0 : cur.isMap) {
+        if (!mapKey) {
+          if (res.type !== TypedValueResolver.typeStr) {
+            throw new Error("Map key should be a string.");
+          }
+          mapKey = res.value;
+        } else if (mapKey) {
+          cur.ref[mapKey] = res.value;
+          mapKey = null;
+          cur.elementsLeft--;
+        }
+      } else if (cur == null ? void 0 : cur.isArray) {
+        cur.ref.push(res.value);
+        cur.elementsLeft--;
+      }
+      if (res.type === TypedValueResolver.typeMap || res.type === TypedValueResolver.typeArray) {
+        if (cur) {
+          contextStack.push(cur);
+        }
+        cur = new StructContext(res.value, res.type === TypedValueResolver.typeMap, res.type === TypedValueResolver.typeArray, res.elementCount);
+      }
+      while ((cur == null ? void 0 : cur.elementsLeft) === 0 && contextStack.length) {
+        cur = contextStack.pop();
+      }
+    }
+    if (!(cur == null ? void 0 : cur.ref)) {
+      return res.value;
+    }
+    return cur.ref;
+  }
+
+  // browser.js
+  if (typeof window !== "undefined") {
+    window.MessagePackNodejs = {
+      encode: messagePackSerialize,
+      decode: messagePackDeserialize
+    };
+  }
+})();

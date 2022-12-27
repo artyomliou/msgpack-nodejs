@@ -7,12 +7,3 @@ export {
   decode,
   constants
 }
-
-if (typeof window !== 'undefined') {
-  // eslint-disable-next-line no-undef
-  window.MessagePackNodejs = {
-    encode,
-    decode,
-    ...constants
-  }
-}
