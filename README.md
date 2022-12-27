@@ -4,7 +4,6 @@
 
 This implementation follows [MsgPack Spec](https://github.com/msgpack/msgpack/blob/master/spec.md).  
 
-
 ---
 
 ## Usage
@@ -14,13 +13,19 @@ npm i msgpack-nodejs
 
 ### Serialize
 ```javascript
-encode({ "compact": true, "schema": 0 });
-// return <Buffer 82 a7 63 6f 6d 70 61 63 74 c3 a6 73 63 68 65 6d 61 00>
+import { encode } from 'msgpack-nodejs'
+encode({ "compact": true, "schema": 0 })
+// return
+// ArrayBuffer {
+//  [Uint8Contents]: <82 a7 63 6f 6d 70 61 63 74 c3 a6 73 63 68 65 6d 61 00>,
+//  byteLength: 18
+//}
 ```
 
 ### Deserialize
 ```javascript
-decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, ]));
+import { decode } from 'msgpack-nodejs'
+decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, ]).buffer)
 // return { compact: true, schema: 0 }
 ```
 
