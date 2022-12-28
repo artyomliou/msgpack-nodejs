@@ -163,7 +163,7 @@
   };
 
   // src/encoder/index.js
-  function messagePackSerialize(srcObject, debug = false) {
+  function msgPackEncode(srcObject, debug = false) {
     const byteArray = new ByteArray();
     match(byteArray, srcObject);
     const buffer = byteArray.getBuffer();
@@ -761,7 +761,7 @@
   ]));
 
   // src/decoder/index.js
-  function messagePackDeserialize(srcBuffer, debug = false) {
+  function msgPackDecode(srcBuffer, debug = false) {
     const view = new DataView(srcBuffer);
     const contextStack = [];
     let cur = null;
@@ -808,8 +808,8 @@
   // browser.js
   if (typeof window !== "undefined") {
     window.MessagePackNodejs = {
-      encode: messagePackSerialize,
-      decode: messagePackDeserialize
+      encode: msgPackEncode,
+      decode: msgPackDecode
     };
   }
 })();

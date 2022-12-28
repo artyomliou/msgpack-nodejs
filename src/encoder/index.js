@@ -36,10 +36,10 @@ import {
 import TimeSpec from '../TimeSpec.js'
 
 /**
- * @param {Object} srcObject
+ * @param {boolean|number|bigint|string|null|Date|ArrayBuffer|Array|Object|Map} srcObject
  * @param {boolean} debug
  */
-export default function messagePackSerialize (srcObject, debug = false) {
+export default function msgPackEncode (srcObject, debug = false) {
   const byteArray = new ByteArray()
   match(byteArray, srcObject)
 

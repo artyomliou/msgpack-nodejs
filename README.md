@@ -11,10 +11,13 @@ This implementation follows [MsgPack Spec](https://github.com/msgpack/msgpack/bl
 npm i msgpack-nodejs
 ```
 
-### Serialize
+### Encode / Decode
+There are 2 API:
+1. [encode](blob/main/src/encoder/index.js): Expect anything, return ```ArrayBuffer```
+2. [decode](blob/main/src/decoder/index.js): Expect ```ArrayBuffer```, return anything
 ```javascript
 import { encode } from 'msgpack-nodejs'
-encode({ "compact": true, "schema": 0 })
+console.log(encode({ "compact": true, "schema": 0 }))
 // return
 // ArrayBuffer {
 //  [Uint8Contents]: <82 a7 63 6f 6d 70 61 63 74 c3 a6 73 63 68 65 6d 61 00>,
@@ -22,11 +25,59 @@ encode({ "compact": true, "schema": 0 })
 //}
 ```
 
-### Deserialize
 ```javascript
 import { decode } from 'msgpack-nodejs'
-decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, ]).buffer)
+console.log(decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, ]).buffer))
 // return { compact: true, schema: 0 }
+```
+
+### Stream (Node.js only)
+There are 2 API:
+1. [EncodeStream](blob/main/src/streams/EncodeStream.js): Expect anything except ```null```, output ```Buffer```
+2. [DecodeStream](blob/main/src/streams/DecodeStream.js): Expect ```Buffer``` or ```ArrayBuffer```, output anything except ```null```. Sometimes you may encounter error after you attached another stream that does not expect a object as its input. 
+
+Example below demostrates how to put these stream together.
+You can find separate usage at [test/EncodeStream.test.js](blob/main/test/EncodeStream.test.js) or [test/DecodeStream.test.js](blob/main/test/DecodeStream.test.js)
+
+```javascript
+import { EncodeStream, DecodeStream } from 'msgpack-nodejs'
+import { Writable } from 'node:stream'
+
+const testCases = [
+  { title: 'bool (true)', args: true },
+  { title: 'bool (false)', args: false },
+  { title: 'number (0)', args: 0 },
+  { title: 'number (127)', args: 127 },
+  { title: 'number (65535)', args: 65535 },
+  { title: 'number (MAX)', args: BigInt(Number.MAX_SAFE_INTEGER) },
+  { title: 'number (MIN)', args: BigInt(Number.MIN_SAFE_INTEGER) },
+  { title: 'float (1.1)', args: 1.1 },
+  { title: 'bigint (1 << 54)', args: BigInt(1) << BigInt(54) },
+  { title: 'string', args: 'hello world! 嗨 😂' },
+  { title: 'date', args: new Date() },
+  { title: 'ArrayBuffer', args: new TextEncoder().encode('hello world').buffer },
+  { title: 'Array', args: [[[[[]]]]] },
+  { title: 'Object', args: { compact: true, schema: 0 } },
+  { title: 'Map', args: new Map([['compact', true], ['schema', 0]]) }
+]
+
+// Declare streams
+const encodeStream = new EncodeStream()
+const decodeStream = new DecodeStream()
+const outStream = new Writable({
+  objectMode: true,
+  write(chunk, encoding, callback) {
+    console.log(chunk)
+    callback()
+  }
+})
+encodeStream.pipe(decodeStream).pipe(outStream)
+
+// Write data into first encodeStream
+for (const testCase of testCases) {
+  console.info(testCase.title)
+  encodeStream.write(testCase.args)
+}
 ```
 
 ### Testing
@@ -42,10 +93,9 @@ decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0x
 | Node.js 12                                   | ❌          |
 
 ## Limitation
-1. Does not support stream
-2. Does not support custom extension
-3. Ext family does not have complete test cases for now.
-4. Does not support float 32, because Javascript float is always 64-bit.
+1. Does not support custom extension
+2. Ext family does not have complete test cases for now.
+3. Does not support float 32, because Javascript float is always 64-bit.
 
 ## TODO
 1. Migrate to typescript

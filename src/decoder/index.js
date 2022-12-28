@@ -5,7 +5,7 @@ import TypedValueResolver from './TypedValueResolver.js'
  * @param {ArrayBuffer} srcBuffer
  * @param {boolean} debug
  */
-export default function messagePackDeserialize (srcBuffer, debug = false) {
+export default function msgPackDecode (srcBuffer, debug = false) {
   const view = new DataView(srcBuffer)
 
   /** @type {StructContext[]} */
