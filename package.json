@@ -1,6 +1,6 @@
 {
   "name": "msgpack-nodejs",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Node.js implementation of MessagePack encoder/decoder",
   "keywords": [
     "msgpack",
@@ -33,8 +33,7 @@
     "test": "mocha",
     "testcov": "nyc --reporter=text mocha",
     "lint": "standard",
-    "build": "esbuild browser.js --bundle --target=chrome67,firefox68,safari14,edge79 --outfile=dist/index.js",
-    "prepare": "husky install"
+    "build": "esbuild browser.js --bundle --target=chrome67,firefox68,safari14,edge79 --outfile=dist/index.js"
   },
   "engines": {
     "node": ">=14"

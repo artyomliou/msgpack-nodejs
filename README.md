@@ -141,3 +141,5 @@ There's 2 files handling with different concerns.
 # References
 - [[JS] TypedArray, ArrayBuffer 和 DataView](https://pjchender.dev/javascript/js-typedarray-buffer-dataview/)
 - [使用ESLint, Prettier, Husky, Lint-staged以及Commitizen提升專案品質及一致性](https://medium.com/@danielhu95/set-up-eslint-pipeline-zh-tw-990d7d9eb68e)
+- [samerbuna/efficient-node](https://github.com/samerbuna/efficient-node/blob/main/400-node-streams.adoc)
+- [Best practices for creating a modern npm package](https://snyk.io/blog/best-practices-create-modern-npm-package/)
