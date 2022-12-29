@@ -13,8 +13,8 @@ npm i msgpack-nodejs
 
 ### Encode / Decode
 There are 2 API:
-1. [encode](blob/main/src/encoder/index.js): Expect anything, return ```ArrayBuffer```
-2. [decode](blob/main/src/decoder/index.js): Expect ```ArrayBuffer```, return anything
+1. [encode](src/encoder/index.js): Expect anything, return ```ArrayBuffer```
+2. [decode](src/decoder/index.js): Expect ```ArrayBuffer```, return anything
 ```javascript
 import { encode } from 'msgpack-nodejs'
 console.log(encode({ "compact": true, "schema": 0 }))
@@ -33,11 +33,11 @@ console.log(decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x
 
 ### Stream (Node.js only)
 There are 2 API:
-1. [EncodeStream](blob/main/src/streams/EncodeStream.js): Expect anything except ```null```, output ```Buffer```
-2. [DecodeStream](blob/main/src/streams/DecodeStream.js): Expect ```Buffer``` or ```ArrayBuffer```, output anything except ```null```. Sometimes you may encounter error after you attached another stream that does not expect a object as its input. 
+1. [EncodeStream](src/streams/EncodeStream.js): Expect anything except ```null```, output ```Buffer```
+2. [DecodeStream](src/streams/DecodeStream.js): Expect ```Buffer``` or ```ArrayBuffer```, output anything except ```null```. Sometimes you may encounter error after you attached another stream that does not expect a object as its input. 
 
 Example below demostrates how to put these stream together.
-You can find separate usage at [test/EncodeStream.test.js](blob/main/test/EncodeStream.test.js) or [test/DecodeStream.test.js](blob/main/test/DecodeStream.test.js)
+You can find separate usage at [test/EncodeStream.test.js](test/EncodeStream.test.js) or [test/DecodeStream.test.js](test/DecodeStream.test.js)
 
 ```javascript
 import { EncodeStream, DecodeStream } from 'msgpack-nodejs'
@@ -98,7 +98,9 @@ for (const testCase of testCases) {
 3. Does not support float 32, because Javascript float is always 64-bit.
 
 ## TODO
-1. Migrate to typescript
+1. Build to common js
+2. Dependency injection of ArrayBuffer/Buffer
+3. Migrate to typescript
 
 
 ---
@@ -106,7 +108,7 @@ for (const testCase of testCases) {
 
 ## Implementation detail
 ### Serialization
-[Serializer](blob/main/src/Serialize.js) uses a recursive function ```match()``` to match JSON structure (primitive value, object, array or nested).
+[Encoder](src/encoder/index.js) uses a recursive function ```match()``` to match JSON structure (primitive value, object, array or nested).
 
 ```match()``` function always get a argument ```val```. It will use different handler to handle ```val``` after determining its type. 
 For each map/array encountered, it will be iterated, then each elements will be passed into ```match``` and return its serialization.
@@ -114,13 +116,13 @@ If it's a primitive value then it will be simply serialized and returned.
 If it's a map/array then it will be serialized too, but only with information like "what type is this value?" and "how many elements it has?".
 Then ```match()``` will dive into (aka iterate) each elements.
 
-All serialized (binary) will be pushed into [ByteArray](blob/main/src/ByteArray.js).
+All serialized (binary) will be pushed into [ByteArray](src/encoder/ByteArray.js).
 After all ```match()``` were executed, this ByteArray will be concatenated and returned.
 
 ### Deserialization
 There's 2 files handling with different concerns.
-- [Deserializer](blob/main/src/Deserialize.js) will compose typed values in proper structure. It utlizes [TypedValueResolver](blob/main/src/TypedValueResolver.js) for resolving typed value. If it get a map/array, then initialize a new [StructContext](blob/main/src/StructContext.js) and push subsequent values into the structure (map/array), with the maximum limit of elements that it could possess. If this limit were met, leave current context, pop previous context from stack.
-- [TypedValueResolver](blob/main/src/TypedValueResolver.js) are full of byte resolving logic. To be specific, resolve first byte for type, based on this, we can resolve remaining bytes with type-specific procedure.
+- [Decoder](src/decoder/index.js) will compose typed values in proper structure. It utlizes [TypedValueResolver](src/decoder/TypedValueResolver.js) for resolving typed value. If it get a map/array, then initialize a new [StructContext](src/decoder/StructContext.js) and push subsequent values into the structure (map/array), with the maximum limit of elements that it could possess. If this limit were met, leave current context, pop previous context from stack.
+- [TypedValueResolver](src/decoder/TypedValueResolver.js) are full of byte resolving logic. To be specific, resolve first byte for type, based on this, we can resolve remaining bytes with type-specific procedure.
 
 
 ### Inspiration
