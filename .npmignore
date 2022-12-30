@@ -1,7 +1,0 @@
-test/**
-dist/**
-.nyc_output/**
-.husky/**
-.github/**
-*.md
-*.html

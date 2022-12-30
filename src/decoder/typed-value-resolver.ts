@@ -30,9 +30,10 @@ import {
   ARRAY32_PREFIX,
   MAP16_PREFIX,
   MAP32_PREFIX,
-  EXT_TYPE_TIMESTAMP
-} from '../constants/index.js'
-import TimeSpec from '../TimeSpec.js'
+  EXT_TYPE_TIMESTAMP,
+} from "../constants/index.js"
+import TimeSpec from "../time-spec.js"
+import { DecodeOutput } from "../types.js"
 
 export default class TypedValueResolver {
   static typeInt = 1
@@ -45,7 +46,7 @@ export default class TypedValueResolver {
   static typeMap = 8
   static typeExt = 9
 
-  static prefixTypeMap = new Map([
+  static prefixTypeMap: Map<number, number> = new Map([
     [UINT8_PREFIX, TypedValueResolver.typeInt],
     [UINT16_PREFIX, TypedValueResolver.typeInt],
     [UINT32_PREFIX, TypedValueResolver.typeInt],
@@ -76,7 +77,7 @@ export default class TypedValueResolver {
     [FIXEXT2_PREFIX, TypedValueResolver.typeExt],
     [FIXEXT4_PREFIX, TypedValueResolver.typeExt],
     [FIXEXT8_PREFIX, TypedValueResolver.typeExt],
-    [FIXEXT16_PREFIX, TypedValueResolver.typeExt]
+    [FIXEXT16_PREFIX, TypedValueResolver.typeExt],
   ])
 
   /**
@@ -86,9 +87,8 @@ export default class TypedValueResolver {
 
   /**
    * Resolved value
-   * @type {Number|BigInt|null|boolean|string|Buffer|Array|Object|null}
    */
-  value = null
+  value: DecodeOutput = null
 
   /**
    * Total length of bytes. For array/map, this value does not include its elements.
@@ -101,11 +101,7 @@ export default class TypedValueResolver {
    */
   elementCount = 0
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   */
-  constructor (view, pos = 0) {
+  constructor(view: DataView, pos = 0) {
     // Get first byte & ove pointer for resolving value
     // (Reminder: because of pass by value, increment happening here will not affect the outside one)
     const firstByte = view.getUint8(pos)
@@ -113,19 +109,34 @@ export default class TypedValueResolver {
 
     // Match first byte with prefixes
     const searchResult = TypedValueResolver.prefixTypeMap.get(firstByte)
-    if (searchResult) {
-      switch (searchResult) {
-        case TypedValueResolver.typeInt: this.#handleInteger(view, pos, firstByte); return
-        case TypedValueResolver.typeNil: this.#handleNil(view, pos, firstByte); return
-        case TypedValueResolver.typeBool: this.#handleBool(view, pos, firstByte); return
-        case TypedValueResolver.typeFloat: this.#handleFloat(view, pos, firstByte); return
-        case TypedValueResolver.typeStr: this.#handleStr(view, pos, firstByte); return
-        case TypedValueResolver.typeBin: this.#handleBin(view, pos, firstByte); return
-        case TypedValueResolver.typeArray: this.#handleArray(view, pos, firstByte); return
-        case TypedValueResolver.typeMap: this.#handleMap(view, pos, firstByte); return
-        case TypedValueResolver.typeExt: this.#handleExt(view, pos, firstByte); return
-        default: throw new Error('Should match exactly one type.')
-      }
+    switch (searchResult) {
+      case TypedValueResolver.typeInt:
+        this.#handleInteger(view, pos, firstByte)
+        return
+      case TypedValueResolver.typeNil:
+        this.#handleNil()
+        return
+      case TypedValueResolver.typeBool:
+        this.#handleBool(firstByte)
+        return
+      case TypedValueResolver.typeFloat:
+        this.#handleFloat(view, pos, firstByte)
+        return
+      case TypedValueResolver.typeStr:
+        this.#handleStr(view, pos, firstByte)
+        return
+      case TypedValueResolver.typeBin:
+        this.#handleBin(view, pos, firstByte)
+        return
+      case TypedValueResolver.typeArray:
+        this.#handleArray(view, pos, firstByte)
+        return
+      case TypedValueResolver.typeMap:
+        this.#handleMap(view, pos, firstByte)
+        return
+      case TypedValueResolver.typeExt:
+        this.#handleExt(view, pos, firstByte)
+        return
     }
 
     // Match first byte for these single byte data (fix-)
@@ -141,17 +152,12 @@ export default class TypedValueResolver {
       this.#handleMap(view, pos, firstByte) // fixmap
     } else {
       const firtByteHex = firstByte.toString(16)
-      console.error('Unknown first byte.', firtByteHex)
+      console.error("Unknown first byte.", firtByteHex)
       throw new Error(`Unknown first byte. (${firtByteHex})`)
     }
   }
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   * @param {Number} firstByte
-   */
-  #handleInteger (view, pos, firstByte) {
+  #handleInteger(view: DataView, pos: number, firstByte: number): void {
     this.type = TypedValueResolver.typeInt
 
     if (firstByte >= 0x00 && firstByte <= 0x7f) {
@@ -187,34 +193,19 @@ export default class TypedValueResolver {
     }
   }
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   * @param {Number} firstByte
-   */
-  #handleNil (view, pos, firstByte) {
+  #handleNil(): void {
     this.type = TypedValueResolver.typeNil
     this.byteLength = 1
     this.value = null
   }
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   * @param {Number} firstByte
-   */
-  #handleBool (view, pos, firstByte) {
+  #handleBool(firstByte: number): void {
     this.type = TypedValueResolver.typeBool
     this.byteLength = 1
-    this.value = (firstByte === BOOL_TRUE)
+    this.value = firstByte === BOOL_TRUE
   }
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   * @param {Number} firstByte
-   */
-  #handleFloat (view, pos, firstByte) {
+  #handleFloat(view: DataView, pos: number, firstByte: number): void {
     this.type = TypedValueResolver.typeFloat
 
     if (firstByte === FLOAT32_PREFIX) {
@@ -226,16 +217,11 @@ export default class TypedValueResolver {
     }
   }
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   * @param {Number} firstByte
-   */
-  #handleStr (view, pos, firstByte) {
+  #handleStr(view: DataView, pos: number, firstByte: number): void {
     this.type = TypedValueResolver.typeStr
 
-    let sizeByteLength
-    let dataByteLength
+    let sizeByteLength: number
+    let dataByteLength: number
     if (firstByte >= 0xa0 && firstByte <= 0xbf) {
       sizeByteLength = 0
       dataByteLength = firstByte - 0xa0
@@ -244,58 +230,62 @@ export default class TypedValueResolver {
       dataByteLength = view.getUint8(pos)
     } else if (firstByte === STR16_PREFIX) {
       sizeByteLength = 2
-      dataByteLength = view.getUint16(pos)
+      dataByteLength = view.getUint16(pos, false)
     } else if (firstByte === STR32_PREFIX) {
       sizeByteLength = 4
-      dataByteLength = view.getUint32(pos)
+      dataByteLength = view.getUint32(pos, false)
+    } else {
+      throw new Error("Undefined firstByte. #handleExt")
     }
 
     // Calculate total length of this string value, so we can move outside position properly
     this.byteLength = 1 + sizeByteLength + dataByteLength
 
     // Calculate the range
-    const strDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength)
-    this.value = new TextDecoder().decode(view.buffer.slice(strDataRange.start, strDataRange.end))
+    const strDataRange = this.#calculateDataRange(
+      pos,
+      sizeByteLength,
+      dataByteLength
+    )
+    this.value = new TextDecoder().decode(
+      view.buffer.slice(strDataRange.start, strDataRange.end)
+    )
   }
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   * @param {Number} firstByte
-   */
-  #handleBin (view, pos, firstByte) {
+  #handleBin(view: DataView, pos: number, firstByte: number): void {
     this.type = TypedValueResolver.typeBin
 
-    let sizeByteLength
-    let dataByteLength
+    let sizeByteLength: number
+    let dataByteLength: number
     if (firstByte === BIN8_PREFIX) {
       sizeByteLength = 1
       dataByteLength = view.getUint8(pos)
     } else if (firstByte === BIN16_PREFIX) {
       sizeByteLength = 2
-      dataByteLength = view.getUint16(pos)
+      dataByteLength = view.getUint16(pos, false)
     } else if (firstByte === BIN32_PREFIX) {
       sizeByteLength = 4
-      dataByteLength = view.getUint32(pos)
+      dataByteLength = view.getUint32(pos, false)
+    } else {
+      throw new Error("Undefined firstByte. #handleBin")
     }
 
     this.byteLength = 1 + sizeByteLength + dataByteLength
-    const binDataRange = this.#calculateDataRange(pos, sizeByteLength, dataByteLength)
+    const binDataRange = this.#calculateDataRange(
+      pos,
+      sizeByteLength,
+      dataByteLength
+    )
     this.value = view.buffer.slice(binDataRange.start, binDataRange.end)
   }
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   * @param {Number} firstByte
-   */
-  #handleArray (view, pos, firstByte) {
+  #handleArray(view: DataView, pos: number, firstByte: number): void {
     this.type = TypedValueResolver.typeArray
     this.value = []
 
     if (firstByte >= 0x90 && firstByte <= 0x9f) {
       this.byteLength = 1
-      this.elementCount = (firstByte - 0b10010000)
+      this.elementCount = firstByte - 0b10010000
     } else if (firstByte === ARRAY16_PREFIX) {
       this.byteLength = 3
       this.elementCount = view.getUint16(pos)
@@ -305,18 +295,13 @@ export default class TypedValueResolver {
     }
   }
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   * @param {Number} firstByte
-   */
-  #handleMap (view, pos, firstByte) {
+  #handleMap(view: DataView, pos: number, firstByte: number): void {
     this.type = TypedValueResolver.typeMap
     this.value = {}
 
     if (firstByte >= 0x80 && firstByte <= 0x8f) {
       this.byteLength = 1
-      this.elementCount = (firstByte - 0x80)
+      this.elementCount = firstByte - 0x80
     } else if (firstByte === MAP16_PREFIX) {
       this.byteLength = 3
       this.elementCount = view.getUint16(pos)
@@ -326,16 +311,11 @@ export default class TypedValueResolver {
     }
   }
 
-  /**
-   * @param {DataView} view
-   * @param {Number} pos
-   * @param {Number} firstByte
-   */
-  #handleExt (view, pos, firstByte) {
+  #handleExt(view: DataView, pos: number, firstByte: number): void {
     this.type = TypedValueResolver.typeExt
 
-    let sizeByteLength
-    let dataByteLength
+    let sizeByteLength: number
+    let dataByteLength: number
     if (firstByte === FIXEXT1_PREFIX) {
       sizeByteLength = 0
       dataByteLength = 1
@@ -360,6 +340,8 @@ export default class TypedValueResolver {
     } else if (firstByte === EXT32_PREFIX) {
       sizeByteLength = 4
       dataByteLength = view.getUint32(pos)
+    } else {
+      throw new Error("Undefined firstByte. #handleExt")
     }
 
     this.byteLength = 1 + sizeByteLength + 1 + dataByteLength
@@ -368,7 +350,11 @@ export default class TypedValueResolver {
     const extType = view.getInt8(pos + sizeByteLength)
 
     // Offset should include "size" and "type"
-    const extDataRange = this.#calculateDataRange(pos, (sizeByteLength + 1), dataByteLength)
+    const extDataRange = this.#calculateDataRange(
+      pos,
+      sizeByteLength + 1,
+      dataByteLength
+    )
     const data = view.buffer.slice(extDataRange.start, extDataRange.end)
 
     // Postprocess for supported extType
@@ -393,22 +379,20 @@ export default class TypedValueResolver {
         this.value = new TimeSpec(sec, nsec).toDate()
         return
       }
-      throw new Error('Timestamp family only supports 32/64/96 bit.')
+      throw new Error("Timestamp family only supports 32/64/96 bit.")
     } else {
-      throw new Error('Does not support unknown ext type.')
+      throw new Error("Does not support unknown ext type.")
     }
   }
 
-  /**
-   * @param {Number} pos
-   * @param {Number} offset
-   * @param {Number} dataByteLength
-   * @returns
-   */
-  #calculateDataRange (pos, offset = 0, dataByteLength = 0) {
+  #calculateDataRange(
+    pos: number,
+    offset = 0,
+    dataByteLength = 0
+  ): { start: number; end: number } {
     return {
       start: pos + offset, // inclusive
-      end: (pos + offset) + dataByteLength // exclusive
+      end: pos + offset + dataByteLength, // exclusive
     }
   }
 }

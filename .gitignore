@@ -130,3 +130,6 @@ out
 
 # For experimental purpose
 lab.js
+
+# Build
+lib/

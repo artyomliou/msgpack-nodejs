@@ -1,51 +1,79 @@
 {
   "name": "msgpack-nodejs",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Node.js implementation of MessagePack encoder/decoder",
+  "author": "Artyom Liou",
+  "license": "ISC",
   "keywords": [
     "msgpack",
-    "messagepack"
+    "messagepack",
+    "typescript"
   ],
-  "type": "module",
-  "main": "index.js",
-  "directories": {
-    "test": "test"
-  },
-  "dependencies": {
-    "esbuild": "0.16.10"
-  },
-  "devDependencies": {
-    "husky": "^8.0.2",
-    "mocha": "^10.2.0",
-    "nyc": "^15.1.0",
-    "standard": "^17.0.0"
-  },
-  "standard": {
-    "env": [
-      "mocha"
-    ],
-    "ignore": [
-      "test.html",
-      "dist/"
-    ]
-  },
-  "scripts": {
-    "test": "mocha",
-    "testcov": "nyc --reporter=text mocha",
-    "lint": "standard",
-    "build": "esbuild browser.js --bundle --target=chrome67,firefox68,safari14,edge79 --outfile=dist/index.js"
-  },
-  "engines": {
-    "node": ">=14"
-  },
+  "homepage": "https://github.com/artyomliou/msgpack-nodejs#readme",
   "repository": {
     "type": "git",
     "url": "https://github.com/artyomliou/msgpack-nodejs.git"
   },
-  "author": "Artyom Liou",
-  "license": "ISC",
   "bugs": {
     "url": "https://github.com/artyomliou/msgpack-nodejs/issues"
   },
-  "homepage": "https://github.com/artyomliou/msgpack-nodejs#readme"
+  "scripts": {
+    "clean": "rm -rf ./lib",
+    "build": "npm run clean && npm run build:esm && npm run build:cjs",
+    "build:esm": "tsc -p ./tsconfig.esm.json && cd lib/esm/ && echo \"{\\\"type\\\": \\\"module\\\"}\" >> package.json",
+    "build:cjs": "tsc -p ./tsconfig.cjs.json",
+    "test": "jest",
+    "coverage": "jest --coverage",
+    "lint": "eslint src/",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "tslib": "^2.4.1"
+  },
+  "devDependencies": {
+    "@tsconfig/node14": "^1.0.3",
+    "@types/jest": "^29.2.4",
+    "@types/node": "^18.11.18",
+    "@typescript-eslint/eslint-plugin": "^5.47.1",
+    "@typescript-eslint/parser": "^5.47.1",
+    "eslint": "^8.30.0",
+    "husky": "^8.0.2",
+    "jest": "^29.3.1",
+    "lint-staged": "^13.1.0",
+    "nyc": "^15.1.0",
+    "ts-jest": "^29.0.3",
+    "typescript": "^4.9.4"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged",
+      "commit-msg": "commitlint -E HUSKY_GIT_PARAMS"
+    }
+  },
+  "lint-staged": {
+    "{src,test}/**/*.ts": [
+      "eslint --fix",
+      "prettier --write"
+    ]
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./lib/esm/types/index.d.ts",
+        "default": "./lib/esm/index.js"
+      },
+      "require": {
+        "types": "./lib/cjs/types/index.d.ts",
+        "default": "./lib/cjs/index.js"
+      }
+    }
+  },
+  "types": "./lib/cjs/types/index.d.ts",
+  "main": "./lib/cjs/index.js",
+  "files": [
+    "lib/**/*"
+  ],
+  "engines": {
+    "node": ">=14"
+  }
 }

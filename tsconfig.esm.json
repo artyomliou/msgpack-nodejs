@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "importHelpers": true,
+    "module": "ESNext",
+    "moduleResolution": "Node",
+    "target": "ES2022",
+    "outDir": "./lib/esm",
+    "declaration": true,
+    "declarationDir": "./lib/esm/types",
+    "declarationMap": true
+  },
+  "include": ["src/**/*"]
+}

@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "importHelpers": true,
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "target": "ES2022",
+    "outDir": "./lib/cjs",
+    "declaration": true,
+    "declarationDir": "./lib/cjs/types",
+    "declarationMap": true
+  },
+  "include": ["src/**/*"]
+}

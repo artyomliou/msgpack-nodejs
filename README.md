@@ -1,23 +1,59 @@
 # msgpack-nodejs
 
-[![Standard - JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com/)
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/artyomliou/msgpack-nodejs/node.js.yml)
+![node-current](https://img.shields.io/node/v/msgpack-nodejs)
+![GitHub top language](https://img.shields.io/github/languages/top/artyomliou/msgpack-nodejs)
+![Lines of code](https://img.shields.io/tokei/lines/github/artyomliou/msgpack-nodejs)
+![npm bundle size](https://img.shields.io/bundlephobia/minzip/msgpack-nodejs)
 
-This implementation follows [MsgPack Spec](https://github.com/msgpack/msgpack/blob/master/spec.md).  
+Yet another javascript/nodejs implementation of [MsgPack Spec](https://github.com/msgpack/msgpack/blob/master/spec.md).  
+The purpose behind is learning by doing, which focuses on modern tools/techniques of nodejs/typescript ecosystem.
+
+# Contents
+
+- [Usage](#usage)
+  - [Installation](#installation)
+  - [API](#api)
+  - [Examples](#examples)
+- [Implementation detail](#implementation-detail)
+  - [Encode](#encode)
+  - [Decode](#decode)
+  - [Inspiration](#inspiration)
+  - [Lesson learned](#lessons-learned)
+- [Project status](#project-status)
+  - [Compability](#compability)
+  - [Limitation](#limitation)
+  - [TODO](#todo)
+- [References](#references)
 
 ---
 
-## Usage
+# Usage
+
+## Installation
+
 ```
 npm i msgpack-nodejs
 ```
 
+You may run `npm test` if you are cloning this project.
+
+## API
+
+There are 4 APIs:
+
+1. [encode](src/encoder/encoder.ts): `any` => `ArrayBuffer`
+2. [decode](src/decoder/decoder.ts): `ArrayBuffer` => `Exclude<any, Map>`
+3. [EncodeStream](src/streams/encode-stream.ts): `Exclude<any, null>` => `Buffer`
+4. [DecodeStream](src/streams/decode-stream.ts): `Buffer` | `ArrayBuffer` => `Exclude<any, null>` <br> _Sometimes you may encounter error after you attached another stream that does not expect a object as its input._
+
+## Examples
+
 ### Encode / Decode
-There are 2 API:
-1. [encode](src/encoder/index.js): Expect anything, return ```ArrayBuffer```
-2. [decode](src/decoder/index.js): Expect ```ArrayBuffer```, return anything
+
 ```javascript
-import { encode } from 'msgpack-nodejs'
-console.log(encode({ "compact": true, "schema": 0 }))
+import { encode } from "msgpack-nodejs"
+console.log(encode({ compact: true, schema: 0 }))
 // return
 // ArrayBuffer {
 //  [Uint8Contents]: <82 a7 63 6f 6d 70 61 63 74 c3 a6 73 63 68 65 6d 61 00>,
@@ -26,40 +62,26 @@ console.log(encode({ "compact": true, "schema": 0 }))
 ```
 
 ```javascript
-import { decode } from 'msgpack-nodejs'
-console.log(decode(new Uint8Array([ 0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73, 0x63, 0x68, 0x65, 0x6d, 0x61, 0x00, ]).buffer))
+import { decode } from "msgpack-nodejs"
+console.log(
+  decode(
+    new Uint8Array([
+      0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73,
+      0x63, 0x68, 0x65, 0x6d, 0x61, 0x00,
+    ]).buffer
+  )
+)
 // return { compact: true, schema: 0 }
 ```
 
-### Stream (Node.js only)
-There are 2 API:
-1. [EncodeStream](src/streams/EncodeStream.js): Expect anything except ```null```, output ```Buffer```
-2. [DecodeStream](src/streams/DecodeStream.js): Expect ```Buffer``` or ```ArrayBuffer```, output anything except ```null```. Sometimes you may encounter error after you attached another stream that does not expect a object as its input. 
+### Stream
 
 Example below demostrates how to put these stream together.
-You can find separate usage at [test/EncodeStream.test.js](test/EncodeStream.test.js) or [test/DecodeStream.test.js](test/DecodeStream.test.js)
+You can find separate usage at [EncodeStream.spec.ts](test/encode-stream.spec.ts) or [DecodeStream.spec.ts](test/decode-stream.spec.ts)
 
 ```javascript
-import { EncodeStream, DecodeStream } from 'msgpack-nodejs'
-import { Writable } from 'node:stream'
-
-const testCases = [
-  { title: 'bool (true)', args: true },
-  { title: 'bool (false)', args: false },
-  { title: 'number (0)', args: 0 },
-  { title: 'number (127)', args: 127 },
-  { title: 'number (65535)', args: 65535 },
-  { title: 'number (MAX)', args: BigInt(Number.MAX_SAFE_INTEGER) },
-  { title: 'number (MIN)', args: BigInt(Number.MIN_SAFE_INTEGER) },
-  { title: 'float (1.1)', args: 1.1 },
-  { title: 'bigint (1 << 54)', args: BigInt(1) << BigInt(54) },
-  { title: 'string', args: 'hello world! 嗨 😂' },
-  { title: 'date', args: new Date() },
-  { title: 'ArrayBuffer', args: new TextEncoder().encode('hello world').buffer },
-  { title: 'Array', args: [[[[[]]]]] },
-  { title: 'Object', args: { compact: true, schema: 0 } },
-  { title: 'Map', args: new Map([['compact', true], ['schema', 0]]) }
-]
+import { EncodeStream, DecodeStream } from "msgpack-nodejs"
+import { Writable } from "node:stream"
 
 // Declare streams
 const encodeStream = new EncodeStream()
@@ -69,79 +91,83 @@ const outStream = new Writable({
   write(chunk, encoding, callback) {
     console.log(chunk)
     callback()
-  }
+  },
 })
 encodeStream.pipe(decodeStream).pipe(outStream)
 
 // Write data into first encodeStream
-for (const testCase of testCases) {
-  console.info(testCase.title)
-  encodeStream.write(testCase.args)
-}
+encodeStream.write({ compact: true, schema: 0 })
 ```
-
-### Testing
-1. Run ```npm test```
-2. Include ```dist/index.js``` in HTML files as ```test.html``` did
-
-## Compability
-| Env                                          | Executable? |
-|----------------------------------------------|-------------|
-| Firefox 108                                  | ✅          |
-| Node.js 16                                   | ✅          |
-| Node.js 14                                   | ✅          |
-| Node.js 12                                   | ❌          |
-
-## Limitation
-1. Does not support custom extension
-2. Ext family does not have complete test cases for now.
-3. Does not support float 32, because Javascript float is always 64-bit.
-
-## TODO
-1. Build to common js
-2. Dependency injection of ArrayBuffer/Buffer
-3. Migrate to typescript
-
 
 ---
 
+# Implementation detail
 
-## Implementation detail
-### Serialization
-[Encoder](src/encoder/index.js) uses a recursive function ```match()``` to match JSON structure (primitive value, object, array or nested).
+## Encode
 
-```match()``` function always get a argument ```val```. It will use different handler to handle ```val``` after determining its type. 
-For each map/array encountered, it will be iterated, then each elements will be passed into ```match``` and return its serialization.
+[Encoder](src/encoder/encoder.ts) uses a recursive function `match()` to match JSON structure (primitive value, object, array or nested).
+
+`match()` function always get a argument `val`. It will use different handler to handle `val` after determining its type.
+For each map/array encountered, it will be iterated, then each elements will be passed into `match` and return its serialization.
 If it's a primitive value then it will be simply serialized and returned.
 If it's a map/array then it will be serialized too, but only with information like "what type is this value?" and "how many elements it has?".
-Then ```match()``` will dive into (aka iterate) each elements.
+Then `match()` will dive into (aka iterate) each elements.
 
-All serialized (binary) will be pushed into [ByteArray](src/encoder/ByteArray.js).
-After all ```match()``` were executed, this ByteArray will be concatenated and returned.
+All serialized (binary) will be pushed into [ByteArray](src/encoder/byte-array.ts).
+After all `match()` were executed, this ByteArray will be concatenated and returned.
 
-### Deserialization
+## Decode
+
 There's 2 files handling with different concerns.
-- [Decoder](src/decoder/index.js) will compose typed values in proper structure. It utlizes [TypedValueResolver](src/decoder/TypedValueResolver.js) for resolving typed value. If it get a map/array, then initialize a new [StructContext](src/decoder/StructContext.js) and push subsequent values into the structure (map/array), with the maximum limit of elements that it could possess. If this limit were met, leave current context, pop previous context from stack.
-- [TypedValueResolver](src/decoder/TypedValueResolver.js) are full of byte resolving logic. To be specific, resolve first byte for type, based on this, we can resolve remaining bytes with type-specific procedure.
 
+- [Decoder](src/decoder/decoder.ts) will compose typed values in proper structure. It utlizes [TypedValueResolver](src/decoder/typed-value-resolver.ts) for resolving typed value. If it get a map/array, then initialize a new [StructContext](src/decoder/struct-context.ts) and push subsequent values into the structure (map/array), with the maximum limit of elements that it could possess. If this limit were met, leave current context, pop previous context from stack.
+- [TypedValueResolver](src/decoder/typed-value-resolver.ts) are full of byte resolving logic. To be specific, resolve first byte for type, based on this, we can resolve remaining bytes with type-specific procedure.
 
-### Inspiration
+## Inspiration
+
 1. [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) - For better buffer allocation strategy
 
-### Lesson learned
+## Lessons learned
+
 - The difference between [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer), [TypedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray) and the node.js API [Buffer](https://nodejs.org/api/buffer.html)
 - The limitation of JS [left shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift) and [right shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift)
-- [Operators of BigInt](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#operators)
+- [BigInt operators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#operators)
 - The performance benefit of better buffer allocation strategy
 - [Private class features](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_class_fields)
-- Another unit test framework - [Mocha](https://mochajs.org/)
-- Another coding style formatter and linter - [StandardJS](https://standardjs.com/index.html)
-- Pre-commit tool - [Husky](https://github.com/typicode/husky)
-  
-  
-  
+- [Typescript](https://www.typescriptlang.org/cheatsheets)
+  - Testing - [ts-jest](https://kulshekhar.github.io/ts-jest/docs/guides/esm-support)
+  - Linter - [typescript-eslint](https://github.com/typescript-eslint/typescript-eslint) & [lint-staged](https://github.com/okonet/lint-staged)
+  - Packaging for ESModule & CommonJS
+- CI & CD - [Github Actions](https://github.com/artyomliou/msgpack-nodejs/actions)
+
+---
+
+# Project status
+
+## Compability
+
+| Env        | Executable? |
+| ---------- | ----------- |
+| Node.js 16 | ✅          |
+| Node.js 14 | ✅          |
+| Node.js 12 | ❌          |
+
+## Limitation
+
+1. Ext family does not have complete test cases for now.
+2. Does not support float 32, because Javascript float is always 64-bit.
+
+## TODO
+
+1. Dependency injection of ArrayBuffer/Buffer
+2. Support custom extension
+3. Ext family fully tested
+
+---
+
 # References
+
 - [[JS] TypedArray, ArrayBuffer 和 DataView](https://pjchender.dev/javascript/js-typedarray-buffer-dataview/)
-- [使用ESLint, Prettier, Husky, Lint-staged以及Commitizen提升專案品質及一致性](https://medium.com/@danielhu95/set-up-eslint-pipeline-zh-tw-990d7d9eb68e)
+- [使用 ESLint, Prettier, Husky, Lint-staged 以及 Commitizen 提升專案品質及一致性](https://medium.com/@danielhu95/set-up-eslint-pipeline-zh-tw-990d7d9eb68e)
 - [samerbuna/efficient-node](https://github.com/samerbuna/efficient-node/blob/main/400-node-streams.adoc)
 - [Best practices for creating a modern npm package](https://snyk.io/blog/best-practices-create-modern-npm-package/)

@@ -1,0 +1,8 @@
+.github/
+.husky/
+.nyc_output/
+.vscode/
+lib/
+node_modules/
+test/dataset/
+package-lock.json
