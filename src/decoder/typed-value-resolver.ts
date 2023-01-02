@@ -1,3 +1,4 @@
+import { getExtension } from "../extensions/registry.js"
 import {
   NIL,
   BOOL_FALSE,
@@ -30,9 +31,7 @@ import {
   ARRAY32_PREFIX,
   MAP16_PREFIX,
   MAP32_PREFIX,
-  EXT_TYPE_TIMESTAMP,
 } from "../constants/index.js"
-import TimeSpec from "../time-spec.js"
 import { DecodeOutput } from "../types.js"
 
 export default class TypedValueResolver {
@@ -276,7 +275,9 @@ export default class TypedValueResolver {
       sizeByteLength,
       dataByteLength
     )
-    this.value = view.buffer.slice(binDataRange.start, binDataRange.end)
+    this.value = new Uint8Array(
+      view.buffer.slice(binDataRange.start, binDataRange.end)
+    )
   }
 
   #handleArray(view: DataView, pos: number, firstByte: number): void {
@@ -358,30 +359,11 @@ export default class TypedValueResolver {
     const data = view.buffer.slice(extDataRange.start, extDataRange.end)
 
     // Postprocess for supported extType
-    // [Important] Because Javascript does not support nanoseconds, so nanoseconds will be discard.
-    if (extType === EXT_TYPE_TIMESTAMP) {
-      const view = new DataView(data)
-      if (data.byteLength === 4) {
-        const sec = view.getUint32(0, false)
-        this.value = new TimeSpec(sec, 0).toDate()
-        return
-      }
-      if (data.byteLength === 8) {
-        const data64 = view.getBigUint64(0, false)
-        const nsec = Number(data64 >> 34n)
-        const sec = Number(data64 & 0x00000003ffffffffn)
-        this.value = new TimeSpec(sec, nsec).toDate()
-        return
-      }
-      if (data.byteLength === 12) {
-        const nsec = view.getUint32(0, false)
-        const sec = Number(view.getBigInt64(4, false)) // signed
-        this.value = new TimeSpec(sec, nsec).toDate()
-        return
-      }
-      throw new Error("Timestamp family only supports 32/64/96 bit.")
-    } else {
+    const ext = getExtension(extType)
+    if (typeof ext === "undefined") {
       throw new Error("Does not support unknown ext type.")
+    } else {
+      this.value = ext.decode(new Uint8Array(data))
     }
   }
 

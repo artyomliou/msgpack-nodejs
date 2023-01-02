@@ -9,7 +9,7 @@ describe("EncodeStream", () => {
       const transform = new EncodeStream()
       transform.on("data", (chunk: EncodeStreamOutput) => {
         try {
-          // 2. Expect both side are Buffer and its contents are identical
+          // 2. Expect both side are identical
           assert.deepStrictEqual(chunk, Buffer.from(encode(test.args)))
         } finally {
           done()

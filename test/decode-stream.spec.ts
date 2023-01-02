@@ -17,7 +17,7 @@ describe("DecodeStream", () => {
       })
 
       // 1. Write encoded data (Buffer) into stream
-      transform.write(Buffer.from(encode(test.args)))
+      transform.write(encode(test.args))
     })
   }
 })

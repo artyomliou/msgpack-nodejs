@@ -1,5 +1,10 @@
 # Versions
 
+## 1.3.0
+
+- feat: support custom extension
+- BREAKING CHANGE: use Uint8Arry for most encoding/decoding
+
 ## 1.2.0
 
 - **refactor: migration to Typescript**

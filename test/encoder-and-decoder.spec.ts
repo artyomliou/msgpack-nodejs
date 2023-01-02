@@ -125,11 +125,10 @@ describe("Encoder/Decoder integration test", () => {
     it("bin 8", () => {
       const values = [
         // basically same as str 8
-        Buffer.from(
-          "一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三",
-          "binary"
-        ).buffer,
-        Buffer.from("😂").buffer,
+        new TextEncoder().encode(
+          "一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三"
+        ),
+        new TextEncoder().encode("😂"),
       ]
       for (const v of values) {
         assert.deepStrictEqual(decode(encode(v)), v)
@@ -138,10 +137,9 @@ describe("Encoder/Decoder integration test", () => {
     it("bin 16", () => {
       const values = [
         // basically same as str 16
-        Buffer.from(
-          "一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四",
-          "binary"
-        ).buffer,
+        new TextEncoder().encode(
+          "一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四五六七八九十壹貳參肆伍陸柒捌玖拾一二三四"
+        ),
       ]
       for (const v of values) {
         assert.deepStrictEqual(decode(encode(v)), v)

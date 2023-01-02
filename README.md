@@ -42,10 +42,13 @@ You may run `npm test` if you are cloning this project.
 
 There are 4 APIs:
 
-1. [encode](src/encoder/encoder.ts): `any` => `ArrayBuffer`
-2. [decode](src/decoder/decoder.ts): `ArrayBuffer` => `Exclude<any, Map>`
-3. [EncodeStream](src/streams/encode-stream.ts): `Exclude<any, null>` => `Buffer`
-4. [DecodeStream](src/streams/decode-stream.ts): `Buffer` | `ArrayBuffer` => `Exclude<any, null>` <br> _Sometimes you may encounter error after you attached another stream that does not expect a object as its input._
+1. [encode()](src/encoder/encoder.ts): `any` => `Uint8Array`
+2. [decode()](src/decoder/decoder.ts): `Uint8Array` => `Exclude<any, Map>`
+3. [EncodeStream class](src/streams/encode-stream.ts): `Exclude<any, null>` => `Buffer`
+4. [DecodeStream class](src/streams/decode-stream.ts): `Buffer` => `Exclude<any, null>` <br> _Sometimes you may encounter error after you attached another stream that does not expect a object as its input._
+5. [CustomExtension type](src/extensions/interface.ts): These format helps you to fill out anything `registerExtension()` wants.
+6. [registerExtension()](src/extensions/registry.ts)
+7. [getExtension()](src/extensions/registry.ts): Get extension with type (number) or class constructor (function)
 
 ## Examples
 
@@ -98,6 +101,13 @@ encodeStream.pipe(decodeStream).pipe(outStream)
 // Write data into first encodeStream
 encodeStream.write({ compact: true, schema: 0 })
 ```
+
+### Custom extension
+
+You can register extension, with a number (0 ~ 127) as its type, and a object constructor that encoder and decoder will use.
+
+[Example](test/extension.spec.ts)
+[Built-in Date() extension](src/extensions/timestamp-extension.ts)
 
 ---
 
@@ -159,9 +169,8 @@ There's 2 files handling with different concerns.
 
 ## TODO
 
-1. Dependency injection of ArrayBuffer/Buffer
-2. Support custom extension
-3. Ext family fully tested
+1. Ext family fully tested
+2. Cache
 
 ---
 

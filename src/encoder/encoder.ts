@@ -31,13 +31,12 @@ import {
   ARRAY32_PREFIX,
   MAP16_PREFIX,
   MAP32_PREFIX,
-  EXT_TYPE_TIMESTAMP,
 } from "../constants/index.js"
-import TimeSpec from "../time-spec.js"
 import { debugMode } from "../constants/debug.js"
-import { EncodableValue, JsonArray, JsonMap } from "../types.js"
+import { EncodableValue } from "../types.js"
+import { getExtension } from "../extensions/registry.js"
 
-export default function msgPackEncode(src: EncodableValue): ArrayBuffer {
+export default function msgPackEncode(src: EncodableValue): Uint8Array {
   const byteArray = new ByteArray()
   match(byteArray, src)
 
@@ -51,23 +50,23 @@ export default function msgPackEncode(src: EncodableValue): ArrayBuffer {
 function match(byteArray: ByteArray, val: EncodableValue): void {
   switch (typeof val) {
     case "boolean":
-      handleBoolean(byteArray, val)
+      byteArray.append(encodeBoolean(val))
       break
 
     case "bigint":
-      handleBigint(byteArray, val)
+      byteArray.append(encodeBigint(val))
       break
 
     case "number":
       if (Number.isInteger(val)) {
-        handleInteger(byteArray, val)
+        byteArray.append(encodeInteger(val))
       } else {
-        handleFloat(byteArray, val)
+        byteArray.append(encodeFloat(val))
       }
       break
 
     case "string":
-      handleString(byteArray, val)
+      byteArray.append(encodeString(val))
       break
 
     case "object":
@@ -75,32 +74,39 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
         byteArray.writeUint8(NIL)
         break
       }
-      if (val instanceof Date) {
-        handleTimestamp(byteArray, val)
-        break
-      }
-      if (val instanceof ArrayBuffer) {
-        handleBuffer(byteArray, val)
+      if (val instanceof Uint8Array) {
+        byteArray.append(encodeBuffer(val))
         break
       }
       if (val instanceof Array) {
-        handleArray(byteArray, val)
+        byteArray.append(encodeArray(val.length))
         for (const element of val) {
           match(byteArray, element)
         }
         break
       }
 
+      // Encode extension
+      if ("constructor" in val) {
+        const ext = getExtension(val.constructor)
+        if (typeof ext !== "undefined") {
+          const array = ext.encode(val)
+          byteArray.append(encodeExt(ext.type, array))
+          break
+        }
+      }
+
       // Handling typical object
-      handleMap(byteArray, val)
       if (val instanceof Map) {
+        byteArray.append(encodeMap(val.size))
         for (const [k, v] of val.entries()) {
-          handleString(byteArray, k)
+          byteArray.append(encodeString(k))
           match(byteArray, v)
         }
       } else {
+        byteArray.append(encodeMap(Object.keys(val).length))
         for (const [k, v] of Object.entries(val)) {
-          handleString(byteArray, k)
+          byteArray.append(encodeString(k))
           match(byteArray, v)
         }
       }
@@ -112,285 +118,293 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
   }
 }
 
-function handleBoolean(byteArray: ByteArray, val: boolean): void {
-  if (val) {
-    byteArray.writeUint8(BOOL_TRUE)
-  } else {
-    byteArray.writeUint8(BOOL_FALSE)
-  }
+export function encodeBoolean(val: boolean): Uint8Array {
+  const array = new Uint8Array(1)
+  array[0] = val ? BOOL_TRUE : BOOL_FALSE
+  return array
 }
 
-function handleInteger(byteArray: ByteArray, number: number): void {
+export function encodeInteger(number: number): Uint8Array {
   // positive fixint stores 7-bit positive integer
   // 0b1111111 = 127
   if (number >= 0 && number <= 127) {
-    byteArray.writeUint8(number)
-    return
+    const array = new Uint8Array(1)
+    array[0] = number
+    return array
   }
 
   // negative fixint stores 5-bit negative integer
   if (number < 0 && number >= -32) {
-    byteArray.writeInt8(number)
-    return
+    const view = new DataView(new ArrayBuffer(1))
+    view.setInt8(0, number)
+    return new Uint8Array(view.buffer)
   }
 
   // unsigned
   if (number > 0) {
     if (number <= 0xff) {
-      byteArray.writeUint8(UINT8_PREFIX)
-      byteArray.writeUint8(number)
-      return
+      const view = new DataView(new ArrayBuffer(2))
+      view.setUint8(0, UINT8_PREFIX)
+      view.setUint8(1, number)
+      return new Uint8Array(view.buffer)
     }
     if (number <= 0xffff) {
-      byteArray.writeUint8(UINT16_PREFIX)
-      byteArray.writeUint16(number)
-      return
+      const view = new DataView(new ArrayBuffer(3))
+      view.setUint8(0, UINT16_PREFIX)
+      view.setUint16(1, number, false)
+      return new Uint8Array(view.buffer)
     }
     if (number <= 0xffffffff) {
-      byteArray.writeUint8(UINT32_PREFIX)
-      byteArray.writeUint32(number)
-      return
+      const view = new DataView(new ArrayBuffer(5))
+      view.setUint8(0, UINT32_PREFIX)
+      view.setUint32(1, number, false)
+      return new Uint8Array(view.buffer)
     }
-
-    return
   }
 
   // signed
   if (number < 0) {
     if (-number <= 0xff) {
-      byteArray.writeUint8(INT8_PREFIX)
-      byteArray.writeInt8(number)
-      return
+      const view = new DataView(new ArrayBuffer(2))
+      view.setUint8(0, INT8_PREFIX)
+      view.setInt8(1, number)
+      return new Uint8Array(view.buffer)
     }
     if (-number <= 0xffff) {
-      byteArray.writeUint8(INT16_PREFIX)
-      byteArray.writeInt16(number)
-      return
+      const view = new DataView(new ArrayBuffer(3))
+      view.setUint8(0, INT16_PREFIX)
+      view.setInt16(1, number, false)
+      return new Uint8Array(view.buffer)
     }
     if (-number <= 0xffffffff) {
-      byteArray.writeUint8(INT32_PREFIX)
-      byteArray.writeInt32(number)
+      const view = new DataView(new ArrayBuffer(5))
+      view.setUint8(0, INT32_PREFIX)
+      view.setInt32(1, number, false)
+      return new Uint8Array(view.buffer)
     }
   }
+
+  throw new Error(
+    "Cannot handle integer more than 4294967295 or less than -2147483648."
+  )
 }
 
-function handleBigint(byteArray: ByteArray, bigint: bigint): void {
+export function encodeBigint(bigint: bigint): Uint8Array {
+  const view = new DataView(new ArrayBuffer(9))
   if (bigint > 0) {
-    byteArray.writeUint8(UINT64_PREFIX)
-    byteArray.writeUint64(bigint)
+    view.setUint8(0, UINT64_PREFIX)
+    view.setBigUint64(1, bigint, false)
   } else {
-    byteArray.writeUint8(INT64_PREFIX)
-    byteArray.writeInt64(bigint)
+    view.setUint8(0, INT64_PREFIX)
+    view.setBigInt64(1, bigint, false)
   }
+  return new Uint8Array(view.buffer)
 }
 
-function handleFloat(byteArray: ByteArray, number: number): void {
+export function encodeFloat(number: number): Uint8Array {
   // Since all float in Javascript is double, it's not possible to have FLOAT32 type.
-  byteArray.writeUint8(FLOAT64_PREFIX)
-  byteArray.writeFloat64(number)
+  const view = new DataView(new ArrayBuffer(9))
+  view.setUint8(0, FLOAT64_PREFIX)
+  view.setFloat64(1, number, false)
+  return new Uint8Array(view.buffer)
 }
 
-function handleString(byteArray: ByteArray, string: string): void {
+export function encodeString(string: string): Uint8Array {
   const strBuf = new TextEncoder().encode(string)
   const bytesCount = strBuf.byteLength
+
   if (bytesCount <= 31) {
-    byteArray.writeUint8(0b10100000 + bytesCount)
-    byteArray.writeBuffer(strBuf)
-    return
+    const array = new Uint8Array(1 + bytesCount)
+    const view = new DataView(array.buffer)
+    view.setUint8(0, 0b10100000 + bytesCount)
+    array.set(strBuf, 1)
+    return array
   }
+
   // (2 ** 8) - 1
   if (bytesCount < 0xff) {
-    byteArray.writeUint8(STR8_PREFIX)
-    byteArray.writeUint8(bytesCount)
-    byteArray.writeBuffer(strBuf)
-    return
+    const array = new Uint8Array(2 + bytesCount)
+    const view = new DataView(array.buffer)
+    view.setUint8(0, STR8_PREFIX)
+    view.setUint8(1, bytesCount)
+    array.set(strBuf, 2)
+    return array
   }
+
   // (2 ** 16) - 1
   if (bytesCount < 0xffff) {
-    byteArray.writeUint8(STR16_PREFIX)
-    byteArray.writeUint16(bytesCount)
-    byteArray.writeBuffer(strBuf)
-    return
+    const array = new Uint8Array(3 + bytesCount)
+    const view = new DataView(array.buffer)
+    view.setUint8(0, STR16_PREFIX)
+    view.setUint16(1, bytesCount, false)
+    array.set(strBuf, 3)
+    return array
   }
+
   // (2 ** 32) - 1
   if (bytesCount < 0xffffffff) {
-    byteArray.writeUint8(STR32_PREFIX)
-    byteArray.writeUint32(bytesCount)
-    byteArray.writeBuffer(strBuf)
-    return
+    const array = new Uint8Array(5 + bytesCount)
+    const view = new DataView(array.buffer)
+    view.setUint8(0, STR32_PREFIX)
+    view.setUint32(1, bytesCount, false)
+    array.set(strBuf, 5)
+    return array
   }
-  throw new Error("Length of string value cannot exceed (2^32)-1.")
+  throw new Error("String's length cannot exceed (2^32)-1.")
 }
 
-function handleBuffer(byteArray: ByteArray, buffer: ArrayBuffer): void {
+export function encodeBuffer(buffer: Uint8Array): Uint8Array {
   const bytesCount = buffer.byteLength
+
   // (2 ** 8) - 1
   if (bytesCount < 0xff) {
-    byteArray.writeUint8(BIN8_PREFIX)
-    byteArray.writeUint8(bytesCount)
-    byteArray.writeBuffer(buffer)
-    return
+    const array = new Uint8Array(2 + bytesCount)
+    const view = new DataView(array.buffer)
+    view.setUint8(0, BIN8_PREFIX)
+    view.setUint8(1, bytesCount)
+    array.set(buffer, 2)
+    return array
   }
+
   // (2 ** 16) - 1
   if (bytesCount < 0xffff) {
-    byteArray.writeUint8(BIN16_PREFIX)
-    byteArray.writeUint16(bytesCount)
-    byteArray.writeBuffer(buffer)
-    return
+    const array = new Uint8Array(3 + bytesCount)
+    const view = new DataView(array.buffer)
+    view.setUint8(0, BIN16_PREFIX)
+    view.setUint16(1, bytesCount)
+    array.set(buffer, 3)
+    return array
   }
+
   // (2 ** 32) - 1
   if (bytesCount < 0xffffffff) {
-    byteArray.writeUint8(BIN32_PREFIX)
-    byteArray.writeUint32(bytesCount)
-    byteArray.writeBuffer(buffer)
-    return
+    const array = new Uint8Array(5 + bytesCount)
+    const view = new DataView(array.buffer)
+    view.setUint8(0, BIN32_PREFIX)
+    view.setUint32(1, bytesCount)
+    array.set(buffer, 5)
+    return array
   }
+
   throw new Error("Length of binary value cannot exceed (2^32)-1.")
 }
 
-function handleArray(byteArray: ByteArray, array: JsonArray): void {
-  const arraySize = array.length
-
+export function encodeArray(arraySize: number): Uint8Array {
   // fixarray
   if (arraySize < 0xf) {
-    byteArray.writeUint8(0b10010000 + arraySize)
-    return
+    const array = new Uint8Array(1)
+    array[0] = 0b10010000 + arraySize
+    return array
   }
 
-  // map 16
+  // array 16
   if (arraySize < 0xffff) {
-    byteArray.writeUint8(ARRAY16_PREFIX)
-    byteArray.writeUint16(arraySize)
-    return
+    const view = new DataView(new ArrayBuffer(3))
+    view.setUint8(0, ARRAY16_PREFIX)
+    view.setUint16(1, arraySize, false)
+    return new Uint8Array(view.buffer)
   }
 
-  // map 32
+  // array 32
   if (arraySize < 0xffffffff) {
-    byteArray.writeUint8(ARRAY32_PREFIX)
-    byteArray.writeUint32(arraySize)
-    return
+    const view = new DataView(new ArrayBuffer(5))
+    view.setUint8(0, ARRAY32_PREFIX)
+    view.setUint32(1, arraySize, false)
+    return new Uint8Array(view.buffer)
   }
 
   throw new Error("Number of elements cannot exceed (2^32)-1.")
 }
 
-function handleMap(
-  byteArray: ByteArray,
-  map: JsonMap | Map<string, any>
-): void {
-  const mapSize = map instanceof Map ? map.size : Object.keys(map).length
-
+export function encodeMap(mapSize: number): Uint8Array {
   // fixmap
   if (mapSize < 0xf) {
-    byteArray.writeUint8(0b10000000 + mapSize)
-    return
+    const array = new Uint8Array(1)
+    array[0] = 0b10000000 + mapSize
+    return array
   }
 
   // map 16
   if (mapSize < 0xffff) {
-    byteArray.writeUint8(MAP16_PREFIX)
-    byteArray.writeUint16(mapSize)
-    return
+    const view = new DataView(new ArrayBuffer(3))
+    view.setUint8(0, MAP16_PREFIX)
+    view.setUint16(1, mapSize, false)
+    return new Uint8Array(view.buffer)
   }
 
   // map 32
   if (mapSize < 0xffffffff) {
-    byteArray.writeUint8(MAP32_PREFIX)
-    byteArray.writeUint32(mapSize)
-    return
+    const view = new DataView(new ArrayBuffer(5))
+    view.setUint8(0, MAP32_PREFIX)
+    view.setUint32(1, mapSize, false)
+    return new Uint8Array(view.buffer)
   }
 
   throw new Error("Number of pairs cannot exceed (2^32)-1.")
 }
 
-/**
- * @link https://github.com/msgpack/msgpack/blob/master/spec.md#timestamp-extension-type
- */
-function handleTimestamp(byteArray: ByteArray, date: Date): void {
-  const time = TimeSpec.fromDate(date)
-  if (time.nsec > 1000000000) {
-    throw new Error("Nanoseconds cannot be larger than 999999999.")
-  }
-
-  if (time.sec >= 0 && time.sec <= 0xffffffff) {
-    // (data64 & 0xffffffff00000000L == 0)
-    // It is basically doing masking on the data64 variable, which only keep nsec, and decide if it equals to 0.
-    if (time.nsec === 0) {
-      // timestamp 32
-      const view = new DataView(new ArrayBuffer(4))
-      view.setUint32(0, Number(time.sec), false) // unsigned
-      handleExt(byteArray, EXT_TYPE_TIMESTAMP, view.buffer)
-    } else {
-      // timestamp 64
-      const data64 = (BigInt(time.nsec) << 34n) + BigInt(time.sec)
-      const view = new DataView(new ArrayBuffer(8))
-      view.setBigUint64(0, data64, false) // unsigned
-      handleExt(byteArray, EXT_TYPE_TIMESTAMP, view.buffer)
-    }
-  } else {
-    // timestamp 96
-    const view = new DataView(new ArrayBuffer(12))
-    view.setUint32(0, time.nsec, false) // unsigned
-    view.setBigInt64(4, BigInt(time.sec), false) // signed
-    handleExt(byteArray, EXT_TYPE_TIMESTAMP, view.buffer)
-  }
-}
-
-function handleExt(
-  byteArray: ByteArray,
-  type: number,
-  data: ArrayBuffer
-): void {
+export function encodeExt(type: number, data: Uint8Array): Uint8Array {
   const byteLength = data.byteLength
+
+  let firstByte: number | undefined
+  let byteLengthLength = 0
+  let byteLengthPos: number | undefined
+  let typePos = 1
+  let dataPos = 2
 
   // fixint
   if (byteLength === 1) {
-    byteArray.writeUint8(FIXEXT1_PREFIX)
-    byteArray.writeInt8(type)
-    byteArray.writeBuffer(data)
-    return
+    firstByte = FIXEXT1_PREFIX
   } else if (byteLength === 2) {
-    byteArray.writeUint8(FIXEXT2_PREFIX)
-    byteArray.writeInt8(type)
-    byteArray.writeBuffer(data)
-    return
+    firstByte = FIXEXT2_PREFIX
   } else if (byteLength === 4) {
-    byteArray.writeUint8(FIXEXT4_PREFIX)
-    byteArray.writeInt8(type)
-    byteArray.writeBuffer(data)
-    return
+    firstByte = FIXEXT4_PREFIX
   } else if (byteLength === 8) {
-    byteArray.writeUint8(FIXEXT8_PREFIX)
-    byteArray.writeInt8(type)
-    byteArray.writeBuffer(data)
-    return
+    firstByte = FIXEXT8_PREFIX
   } else if (byteLength === 16) {
-    byteArray.writeUint8(FIXEXT16_PREFIX)
-    byteArray.writeInt8(type)
-    byteArray.writeBuffer(data)
-    return
+    firstByte = FIXEXT16_PREFIX
   }
 
   // ext 8
   if (byteLength < 0xff) {
-    byteArray.writeUint8(EXT8_PREFIX)
-    byteArray.writeUint8(byteLength)
-    byteArray.writeInt8(type)
-    byteArray.writeBuffer(data)
-    return
+    firstByte = EXT8_PREFIX
+    byteLengthLength = 1
+    byteLengthPos = 1
+    typePos = 2
+    dataPos = 3
   } else if (byteLength < 0xffff) {
-    byteArray.writeUint8(EXT16_PREFIX)
-    byteArray.writeUint16(byteLength)
-    byteArray.writeInt8(type)
-    byteArray.writeBuffer(data)
-    return
+    firstByte = EXT16_PREFIX
+    byteLengthLength = 2
+    byteLengthPos = 1
+    typePos = 3
+    dataPos = 4
   } else if (byteLength < 0xffffffff) {
-    byteArray.writeUint8(EXT32_PREFIX)
-    byteArray.writeUint32(byteLength)
-    byteArray.writeInt8(type)
-    byteArray.writeBuffer(data)
-    return
+    firstByte = EXT32_PREFIX
+    byteLengthLength = 4
+    byteLengthPos = 1
+    typePos = 5
+    dataPos = 6
+  } else {
+    throw new Error("Ext does not support data exceeding 2**32-1 bytes.")
   }
 
-  throw new Error("Ext does not support data exceeding 2**32-1 bytes.")
+  const buffer = new ArrayBuffer(1 + byteLengthLength + 1 + data.byteLength)
+  const array = new Uint8Array(buffer)
+  const view = new DataView(buffer)
+  view.setUint8(0, firstByte)
+  if (
+    typeof byteLengthPos !== "undefined" &&
+    typeof byteLengthLength !== "undefined"
+  ) {
+    if (byteLengthLength === 1) {
+      view.setUint8(byteLengthPos, byteLength)
+    } else if (byteLengthLength === 2) {
+      view.setUint16(byteLengthPos, byteLength, false)
+    } else {
+      view.setUint32(byteLengthPos, byteLength, false)
+    }
+  }
+  view.setInt8(typePos, type)
+  array.set(data, dataPos)
+  return array
 }

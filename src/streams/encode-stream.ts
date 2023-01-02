@@ -1,5 +1,4 @@
 import { Transform, TransformCallback } from "stream"
-import { Buffer } from "buffer"
 import msgPackEncode from "../encoder/encoder.js"
 import { EncodeStreamInput } from "../types.js"
 
@@ -15,6 +14,6 @@ export default class EncodeStream extends Transform {
     encoding: BufferEncoding,
     callback: TransformCallback
   ): void {
-    callback(null, Buffer.from(msgPackEncode(chunk)))
+    callback(null, msgPackEncode(chunk))
   }
 }

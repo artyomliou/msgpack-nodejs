@@ -29,5 +29,3 @@ export const ARRAY16_PREFIX = 0xdc
 export const ARRAY32_PREFIX = 0xdd
 export const MAP16_PREFIX = 0xde
 export const MAP32_PREFIX = 0xdf
-
-export const EXT_TYPE_TIMESTAMP = -1

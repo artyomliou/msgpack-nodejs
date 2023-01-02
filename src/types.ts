@@ -1,23 +1,25 @@
 import { Buffer } from "buffer"
 
+export type ExtensionClass = unknown
+
 export type EncodableValue =
   | boolean
   | number
   | bigint
   | string
   | Date
-  | ArrayBuffer
+  | Uint8Array
   | JsonArray
   | JsonMap
-  | Map<string, any>
+  | JsMap
   | null
-export type DecodeOutput = Exclude<EncodableValue, Map<string, any>>
+  | ExtensionClass
+export type DecodeOutput = Exclude<EncodableValue, JsMap> | ExtensionClass
 export type EncodeStreamInput = Exclude<EncodableValue, null>
 export type EncodeStreamOutput = Buffer
-export type DecodeStreamInput = Buffer | string
+export type DecodeStreamInput = Buffer
 export type DecodeStreamOutput = Exclude<DecodeOutput, null>
 
-export type JsonArray = Array<EncodableValue>
-export interface JsonMap {
-  [key: string]: any
-}
+export type JsonArray = Array<unknown>
+export type JsonMap = Record<string, unknown>
+export type JsMap = Map<unknown, unknown>

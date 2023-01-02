@@ -19,8 +19,8 @@ const cases: StreamTestCase[] = [
   { title: "string", args: "hello world! 嗨 😂" },
   { title: "date", args: new Date() },
   {
-    title: "ArrayBuffer",
-    args: new TextEncoder().encode("hello world").buffer,
+    title: "Uint8Array",
+    args: new TextEncoder().encode("hello world"),
   },
   { title: "Array", args: [[[[[]]]]] },
   { title: "Object", args: { compact: true, schema: 0 } },

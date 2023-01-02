@@ -3,8 +3,13 @@ import TypedValueResolver from "./typed-value-resolver.js"
 import { debugMode } from "../constants/debug.js"
 import { DecodeOutput, JsonArray, JsonMap } from "../types.js"
 
-export default function msgPackDecode(srcBuffer: ArrayBuffer): DecodeOutput {
-  const view = new DataView(srcBuffer)
+export default function msgPackDecode(src: Uint8Array): DecodeOutput {
+  const view = new DataView(src.buffer, src.byteOffset, src.byteLength)
+  if (debugMode) {
+    console.log(
+      `src length = ${src.byteLength}, view length = ${view.byteLength}, view buffer length = ${view.buffer.byteLength}`
+    )
+  }
 
   const contextStack: StructContext[] = []
   let cur: StructContext | null = null
