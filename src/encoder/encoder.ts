@@ -35,6 +35,10 @@ import {
 import { debugMode } from "../constants/debug.js"
 import { EncodableValue } from "../types.js"
 import { getExtension } from "../extensions/registry.js"
+import { LruCache } from "../cache.js"
+
+const stringCache = new LruCache<string>()
+const mapCache = new LruCache<number>()
 
 export default function msgPackEncode(src: EncodableValue): Uint8Array {
   const byteArray = new ByteArray()
@@ -98,15 +102,15 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
 
       // Handling typical object
       if (val instanceof Map) {
-        byteArray.append(encodeMap(val.size))
+        byteArray.append(mapCache.remember(encodeMap, val.size))
         for (const [k, v] of val.entries()) {
-          byteArray.append(encodeString(k))
+          byteArray.append(stringCache.remember(encodeString, k))
           match(byteArray, v)
         }
       } else {
-        byteArray.append(encodeMap(Object.keys(val).length))
+        byteArray.append(mapCache.remember(encodeMap, Object.keys(val).length))
         for (const [k, v] of Object.entries(val)) {
-          byteArray.append(encodeString(k))
+          byteArray.append(stringCache.remember(encodeString, k))
           match(byteArray, v)
         }
       }

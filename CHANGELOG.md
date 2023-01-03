@@ -1,5 +1,9 @@
 # Versions
 
+## 1.3.1
+
+- optimize: improve encoder performance by caching on map and its string key
+
 ## 1.3.0
 
 - feat: support custom extension

@@ -1,6 +1,5 @@
-.github/_
+.github/
 .husky/_
-.nyc_output/_
-lib/_
-CHANGELOG.md
-README.md
+.nyc_output/
+lib/
+*.md
