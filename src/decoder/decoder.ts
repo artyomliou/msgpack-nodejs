@@ -20,10 +20,7 @@ export default function msgPackDecode(src: Uint8Array): DecodeOutput {
   while (pos < view.byteLength) {
     res = new TypedValueResolver(view, pos)
     if (debugMode) {
-      console.log(
-        `pos = ${pos}, type = ${res.type}, byteLength = ${res.byteLength}`,
-        res.value
-      )
+      console.log(`pos = ${pos}, byteLength = ${res.byteLength}`, res.value)
     }
 
     // Move position, based on reported scanned bytes
@@ -49,10 +46,7 @@ export default function msgPackDecode(src: Uint8Array): DecodeOutput {
     }
 
     // For a new map/array, in order to push subsequent resolved value in, we must switch context into this map/array.
-    if (
-      res.type === TypedValueResolver.typeMap ||
-      res.type === TypedValueResolver.typeArray
-    ) {
+    if (res.isMap || res.isArray) {
       if (cur != null) {
         contextStack.push(cur)
       }
