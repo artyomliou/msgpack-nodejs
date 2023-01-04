@@ -9,8 +9,10 @@ export class LruCache<K, C = Uint8Array> {
     hit: 0,
     missed: 0,
     evicted: 0,
+    rare: 0,
   }
   cache: Map<K, C> = new Map()
+  rareKeys?: Set<K>
 
   constructor(public size = 30) {
     // For stat aggregation
@@ -27,6 +29,24 @@ export class LruCache<K, C = Uint8Array> {
       return val
     }
 
+    // Prevent rare keys
+    if (this.rareKeys) {
+      // If this key appears first time, we keep record of it.
+      if (!this.rareKeys.has(key)) {
+        this.rareKeys.add(key)
+        return cb(key) as C
+      }
+
+      // If this key appears second time, we can cache it.
+      this.rareKeys.delete(key)
+
+      // Evict
+      if (this.rareKeys.size >= this.size) {
+        this.stat.rare += this.rareKeys.size
+        this.rareKeys.clear()
+      }
+    }
+
     // Cache the value
     val = cb(key) as C
     this.cache.set(key, val)
@@ -39,5 +59,10 @@ export class LruCache<K, C = Uint8Array> {
     }
 
     return val
+  }
+
+  noRareKeys() {
+    this.rareKeys = new Set()
+    return this
   }
 }

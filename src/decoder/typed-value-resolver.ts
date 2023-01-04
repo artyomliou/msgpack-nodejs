@@ -50,7 +50,11 @@ export default class TypedValueResolver {
    */
   elementCount = 0
 
-  constructor(protected view: DataView, protected pos: number) {
+  constructor(
+    protected view: DataView,
+    protected uint8View: Uint8Array,
+    protected pos: number
+  ) {
     // Get first byte & ove pointer for resolving value
     // (Reminder: because of pass by value, increment happening here will not affect the outside one)
     const firstByte = this.view.getUint8(this.pos)
@@ -198,6 +202,7 @@ function decodeStr32(this: TypedValueResolver): void {
   decodeStrWithFlexibleSize.call(this, 4, this.view.getUint32(this.pos, false))
 }
 
+const textDecoder = new TextDecoder()
 function decodeStrWithFlexibleSize(
   this: TypedValueResolver,
   sizeByteLength: number,
@@ -212,8 +217,8 @@ function decodeStrWithFlexibleSize(
     sizeByteLength,
     dataByteLength
   )
-  this.value = new TextDecoder().decode(
-    this.view.buffer.slice(strDataRange.start, strDataRange.end)
+  this.value = textDecoder.decode(
+    this.uint8View.subarray(strDataRange.start, strDataRange.end)
   )
 }
 
@@ -240,9 +245,7 @@ function decodeBinWithFlexibleSize(
     sizeByteLength,
     dataByteLength
   )
-  this.value = new Uint8Array(
-    this.view.buffer.slice(binDataRange.start, binDataRange.end)
-  )
+  this.value = this.uint8View.subarray(binDataRange.start, binDataRange.end)
 }
 
 function decodeFixArray(this: TypedValueResolver, firstByte: number): void {
@@ -328,14 +331,14 @@ function decodeExtWithFlexibleSize(
     sizeByteLength + 1,
     dataByteLength
   )
-  const data = this.view.buffer.slice(extDataRange.start, extDataRange.end)
+  const data = this.uint8View.subarray(extDataRange.start, extDataRange.end)
 
   // Postprocess for supported extType
   const ext = getExtension(extType)
   if (typeof ext === "undefined") {
     throw new Error("Does not support unknown ext type.")
   } else {
-    this.value = ext.decode(new Uint8Array(data))
+    this.value = ext.decode(data)
   }
 }
 

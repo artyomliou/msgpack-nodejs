@@ -42,7 +42,7 @@ const ext: CustomExtension<Date> = {
   },
 
   decode(data: Uint8Array): Date {
-    const view = new DataView(data.buffer)
+    const view = new DataView(data.buffer, data.byteOffset, data.byteLength)
     if (data.byteLength === 4) {
       const sec = view.getUint32(0, false)
       return new TimeSpec(sec, 0).toDate()

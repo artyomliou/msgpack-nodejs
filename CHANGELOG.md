@@ -1,5 +1,14 @@
 # Versions
 
+## 1.3.3
+
+- optimize: encoder/decoder perf with caching and profiler
+
+Again, encoding and decoding [aws-ip-ranges.json](test/dataset/aws-ip-ranges.json).
+
+encoding: 60ms -> 50ms
+decoding: 250ms -> 150ms
+
 ## 1.3.2
 
 - fix: ESM module import

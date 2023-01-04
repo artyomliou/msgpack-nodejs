@@ -37,9 +37,9 @@ import { EncodableValue } from "../types.js"
 import { getExtension } from "../extensions/registry.js"
 import { LruCache } from "../cache.js"
 
-const stringCache = new LruCache<string>()
+const stringKeyCache = new LruCache<string>(60).noRareKeys()
+const mapKeyCache = new LruCache<string>()
 const mapCache = new LruCache<number>()
-const arrayCache = new LruCache<number>()
 
 export default function msgPackEncode(src: EncodableValue): Uint8Array {
   const byteArray = new ByteArray()
@@ -71,7 +71,7 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
       break
 
     case "string":
-      byteArray.append(encodeString(val))
+      byteArray.append(stringKeyCache.remember(encodeString, val))
       break
 
     case "object":
@@ -84,7 +84,7 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
         break
       }
       if (val instanceof Array) {
-        byteArray.append(arrayCache.remember(encodeArray, val.length))
+        byteArray.append(encodeArray(val.length))
         for (const element of val) {
           match(byteArray, element)
         }
@@ -105,13 +105,13 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
       if (val instanceof Map) {
         byteArray.append(mapCache.remember(encodeMap, val.size))
         for (const [k, v] of val.entries()) {
-          byteArray.append(stringCache.remember(encodeString, k))
+          byteArray.append(mapKeyCache.remember(encodeString, k))
           match(byteArray, v)
         }
       } else {
         byteArray.append(mapCache.remember(encodeMap, Object.keys(val).length))
         for (const [k, v] of Object.entries(val)) {
-          byteArray.append(stringCache.remember(encodeString, k))
+          byteArray.append(mapKeyCache.remember(encodeString, k))
           match(byteArray, v)
         }
       }

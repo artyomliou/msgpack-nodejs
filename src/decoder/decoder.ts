@@ -3,11 +3,15 @@ import TypedValueResolver from "./typed-value-resolver.js"
 import { debugMode } from "../constants/debug.js"
 import { DecodeOutput, JsonArray, JsonMap } from "../types.js"
 
-export default function msgPackDecode(src: Uint8Array): DecodeOutput {
-  const view = new DataView(src.buffer, src.byteOffset, src.byteLength)
+export default function msgPackDecode(uint8View: Uint8Array): DecodeOutput {
+  const view = new DataView(
+    uint8View.buffer,
+    uint8View.byteOffset,
+    uint8View.byteLength
+  )
   if (debugMode) {
     console.log(
-      `src length = ${src.byteLength}, view length = ${view.byteLength}, view buffer length = ${view.buffer.byteLength}`
+      `uint8View length = ${uint8View.byteLength}, view length = ${view.byteLength}, view buffer length = ${view.buffer.byteLength}`
     )
   }
 
@@ -18,7 +22,7 @@ export default function msgPackDecode(src: Uint8Array): DecodeOutput {
   let pos = 0
 
   while (pos < view.byteLength) {
-    res = new TypedValueResolver(view, pos)
+    res = new TypedValueResolver(view, uint8View, pos)
     if (debugMode) {
       console.log(`pos = ${pos}, byteLength = ${res.byteLength}`, res.value)
     }
