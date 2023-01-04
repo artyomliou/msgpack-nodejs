@@ -21,6 +21,7 @@ const cases: StreamTestCase[] = [
   {
     title: "Uint8Array",
     args: new TextEncoder().encode("hello world"),
+    expected: Buffer.from(new TextEncoder().encode("hello world")),
   },
   { title: "Array", args: [[[[[]]]]] },
   { title: "Object", args: { compact: true, schema: 0 } },
