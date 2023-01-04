@@ -1,5 +1,5 @@
-import TimeSpec from "./time-spec"
-import { CustomExtension } from "./interface"
+import TimeSpec from "./time-spec.js"
+import { CustomExtension } from "./interface.js"
 
 export const EXT_TYPE_TIMESTAMP = -1
 

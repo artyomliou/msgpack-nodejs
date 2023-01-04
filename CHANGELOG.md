@@ -1,5 +1,9 @@
 # Versions
 
+## 1.3.2
+
+- fix: ESM module import
+
 ## 1.3.1
 
 - optimize: improve encoder performance by caching on map and its string key
