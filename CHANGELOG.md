@@ -3,6 +3,7 @@
 ## 1.3.2
 
 - fix: ESM module import
+- fix: disable cache because its not effective
 
 ## 1.3.1
 
