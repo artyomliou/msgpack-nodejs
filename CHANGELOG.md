@@ -3,7 +3,10 @@
 ## 1.3.2
 
 - fix: ESM module import
-- fix: disable cache because its not effective
+- fix: **truly improve encoder performance** with larger page & caching map
+
+For example, encoding [aws-ip-ranges.json](test/dataset/aws-ip-ranges.json) in previous release takes 1 second.
+Now it takes only 60ms, which improve by 94%.
 
 ## 1.3.1
 

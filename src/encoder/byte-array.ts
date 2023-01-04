@@ -1,5 +1,5 @@
 export default class ByteArray {
-  static blockByteLength = 64
+  static blockByteLength = 1024 * 16 // 16K
 
   #array: Uint8Array
   #view: DataView

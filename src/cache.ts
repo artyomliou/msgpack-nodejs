@@ -1,22 +1,25 @@
-const caches: LruCache<unknown>[] = []
+const caches: LruCache<unknown, unknown>[] = []
 
-export class LruCache<T> {
+export function cacheStatistic() {
+  return caches.map((c) => c.stat)
+}
+
+export class LruCache<K, C = Uint8Array> {
   stat = {
     hit: 0,
     missed: 0,
     evicted: 0,
   }
-  // oneTimeKeys: Set<T> = new Set()
-  cache: Map<T, Uint8Array> = new Map()
+  cache: Map<K, C> = new Map()
 
   constructor(public size = 30) {
     // For stat aggregation
     caches.push(this)
   }
 
-  remember(cb: CallableFunction, key: T): Uint8Array {
+  remember(cb: CallableFunction, key: K): C {
     let val = this.cache.get(key)
-    if (val instanceof Uint8Array) {
+    if (typeof val !== "undefined") {
       // Move to last
       this.cache.delete(key)
       this.cache.set(key, val)
@@ -25,7 +28,7 @@ export class LruCache<T> {
     }
 
     // Cache the value
-    val = cb(key) as Uint8Array
+    val = cb(key) as C
     this.cache.set(key, val)
     this.stat.missed++
 
@@ -37,8 +40,4 @@ export class LruCache<T> {
 
     return val
   }
-}
-
-export function cacheStatistic() {
-  return caches.map((c) => c.stat)
 }
