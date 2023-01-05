@@ -37,10 +37,6 @@ import { EncodableValue } from "../types.js"
 import { getExtension } from "../extensions/registry.js"
 import { LruCache } from "../cache.js"
 
-const stringKeyCache = new LruCache<string>(60).noRareKeys()
-const mapKeyCache = new LruCache<string>()
-const mapCache = new LruCache<number>()
-
 export default function msgPackEncode(src: EncodableValue): Uint8Array {
   const byteArray = new ByteArray()
   match(byteArray, src)
@@ -55,23 +51,23 @@ export default function msgPackEncode(src: EncodableValue): Uint8Array {
 function match(byteArray: ByteArray, val: EncodableValue): void {
   switch (typeof val) {
     case "boolean":
-      byteArray.append(encodeBoolean(val))
+      byteArray.writeUint8(val ? BOOL_TRUE : BOOL_FALSE)
       break
 
     case "bigint":
-      byteArray.append(encodeBigint(val))
+      encodeBigint(byteArray, val)
       break
 
     case "number":
       if (Number.isInteger(val)) {
-        byteArray.append(encodeInteger(val))
+        encodeInteger(byteArray, val)
       } else {
-        byteArray.append(encodeFloat(val))
+        encodeFloat(byteArray, val)
       }
       break
 
     case "string":
-      byteArray.append(stringKeyCache.remember(encodeString, val))
+      encodeString(byteArray, val)
       break
 
     case "object":
@@ -80,11 +76,11 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
         break
       }
       if (val instanceof Uint8Array) {
-        byteArray.append(encodeBuffer(val))
+        encodeBuffer(byteArray, val)
         break
       }
       if (val instanceof Array) {
-        byteArray.append(encodeArray(val.length))
+        encodeArray(byteArray, val.length)
         for (const element of val) {
           match(byteArray, element)
         }
@@ -96,22 +92,22 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
         const ext = getExtension(val.constructor)
         if (typeof ext !== "undefined") {
           const array = ext.encode(val)
-          byteArray.append(encodeExt(ext.type, array))
+          encodeExt(byteArray, ext.type, array)
           break
         }
       }
 
       // Handling typical object
       if (val instanceof Map) {
-        byteArray.append(mapCache.remember(encodeMap, val.size))
+        encodeMap(byteArray, val.size)
         for (const [k, v] of val.entries()) {
-          byteArray.append(mapKeyCache.remember(encodeString, k))
+          encodeString(byteArray, k, true)
           match(byteArray, v)
         }
       } else {
-        byteArray.append(mapCache.remember(encodeMap, Object.keys(val).length))
+        encodeMap(byteArray, Object.keys(val).length)
         for (const [k, v] of Object.entries(val)) {
-          byteArray.append(mapKeyCache.remember(encodeString, k))
+          encodeString(byteArray, k, true)
           match(byteArray, v)
         }
       }
@@ -123,69 +119,53 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
   }
 }
 
-export function encodeBoolean(val: boolean): Uint8Array {
-  const array = new Uint8Array(1)
-  array[0] = val ? BOOL_TRUE : BOOL_FALSE
-  return array
-}
-
-export function encodeInteger(number: number): Uint8Array {
+function encodeInteger(byteArray: ByteArray, number: number): void {
   // positive fixint stores 7-bit positive integer
   // 0b1111111 = 127
   if (number >= 0 && number <= 127) {
-    const array = new Uint8Array(1)
-    array[0] = number
-    return array
+    return byteArray.writeUint8(number)
   }
 
   // negative fixint stores 5-bit negative integer
   if (number < 0 && number >= -32) {
-    const view = new DataView(new ArrayBuffer(1))
-    view.setInt8(0, number)
-    return new Uint8Array(view.buffer)
+    return byteArray.writeInt8(number)
   }
 
   // unsigned
   if (number > 0) {
     if (number <= 0xff) {
-      const view = new DataView(new ArrayBuffer(2))
-      view.setUint8(0, UINT8_PREFIX)
-      view.setUint8(1, number)
-      return new Uint8Array(view.buffer)
+      byteArray.writeUint8(UINT8_PREFIX)
+      byteArray.writeUint8(number)
+      return
     }
     if (number <= 0xffff) {
-      const view = new DataView(new ArrayBuffer(3))
-      view.setUint8(0, UINT16_PREFIX)
-      view.setUint16(1, number, false)
-      return new Uint8Array(view.buffer)
+      byteArray.writeUint8(UINT16_PREFIX)
+      byteArray.writeUint16(number)
+      return
     }
     if (number <= 0xffffffff) {
-      const view = new DataView(new ArrayBuffer(5))
-      view.setUint8(0, UINT32_PREFIX)
-      view.setUint32(1, number, false)
-      return new Uint8Array(view.buffer)
+      byteArray.writeUint8(UINT32_PREFIX)
+      byteArray.writeUint32(number)
+      return
     }
   }
 
   // signed
   if (number < 0) {
-    if (-number <= 0xff) {
-      const view = new DataView(new ArrayBuffer(2))
-      view.setUint8(0, INT8_PREFIX)
-      view.setInt8(1, number)
-      return new Uint8Array(view.buffer)
+    if (-0x80 <= number) {
+      byteArray.writeUint8(INT8_PREFIX)
+      byteArray.writeInt8(number)
+      return
     }
-    if (-number <= 0xffff) {
-      const view = new DataView(new ArrayBuffer(3))
-      view.setUint8(0, INT16_PREFIX)
-      view.setInt16(1, number, false)
-      return new Uint8Array(view.buffer)
+    if (-0x8000 <= number) {
+      byteArray.writeUint8(INT16_PREFIX)
+      byteArray.writeInt16(number)
+      return
     }
-    if (-number <= 0xffffffff) {
-      const view = new DataView(new ArrayBuffer(5))
-      view.setUint8(0, INT32_PREFIX)
-      view.setInt32(1, number, false)
-      return new Uint8Array(view.buffer)
+    if (-0x80000000 <= number) {
+      byteArray.writeUint8(INT32_PREFIX)
+      byteArray.writeInt32(number)
+      return
     }
   }
 
@@ -194,168 +174,154 @@ export function encodeInteger(number: number): Uint8Array {
   )
 }
 
-export function encodeBigint(bigint: bigint): Uint8Array {
-  const view = new DataView(new ArrayBuffer(9))
+function encodeBigint(byteArray: ByteArray, bigint: bigint): void {
   if (bigint > 0) {
-    view.setUint8(0, UINT64_PREFIX)
-    view.setBigUint64(1, bigint, false)
+    byteArray.writeUint8(UINT64_PREFIX)
+    byteArray.writeUint64(bigint)
   } else {
-    view.setUint8(0, INT64_PREFIX)
-    view.setBigInt64(1, bigint, false)
+    byteArray.writeUint8(INT64_PREFIX)
+    byteArray.writeInt64(bigint)
   }
-  return new Uint8Array(view.buffer)
 }
 
-export function encodeFloat(number: number): Uint8Array {
+function encodeFloat(byteArray: ByteArray, number: number): void {
   // Since all float in Javascript is double, it's not possible to have FLOAT32 type.
-  const view = new DataView(new ArrayBuffer(9))
-  view.setUint8(0, FLOAT64_PREFIX)
-  view.setFloat64(1, number, false)
-  return new Uint8Array(view.buffer)
+  byteArray.writeUint8(FLOAT64_PREFIX)
+  byteArray.writeFloat64(number)
 }
 
-export function encodeString(string: string): Uint8Array {
-  const strBuf = new TextEncoder().encode(string)
+// These 2 variables are created for encodeString()
+const textEncoder = new TextEncoder()
+const stringCache = new LruCache<string>(60).noRareKeys()
+
+function encodeString(
+  byteArray: ByteArray,
+  string: string,
+  useCache = false
+): void {
+  const strBuf = useCache
+    ? stringCache.remember(() => textEncoder.encode(string), string)
+    : textEncoder.encode(string)
   const bytesCount = strBuf.byteLength
 
   if (bytesCount <= 31) {
-    const array = new Uint8Array(1 + bytesCount)
-    const view = new DataView(array.buffer)
-    view.setUint8(0, 0b10100000 + bytesCount)
-    array.set(strBuf, 1)
-    return array
+    byteArray.writeUint8(0b10100000 + bytesCount)
+    byteArray.append(strBuf)
+    return
   }
 
   // (2 ** 8) - 1
   if (bytesCount < 0xff) {
-    const array = new Uint8Array(2 + bytesCount)
-    const view = new DataView(array.buffer)
-    view.setUint8(0, STR8_PREFIX)
-    view.setUint8(1, bytesCount)
-    array.set(strBuf, 2)
-    return array
+    byteArray.writeUint8(STR8_PREFIX)
+    byteArray.writeUint8(bytesCount)
+    byteArray.append(strBuf)
+    return
   }
 
   // (2 ** 16) - 1
   if (bytesCount < 0xffff) {
-    const array = new Uint8Array(3 + bytesCount)
-    const view = new DataView(array.buffer)
-    view.setUint8(0, STR16_PREFIX)
-    view.setUint16(1, bytesCount, false)
-    array.set(strBuf, 3)
-    return array
+    byteArray.writeUint8(STR16_PREFIX)
+    byteArray.writeUint16(bytesCount)
+    byteArray.append(strBuf)
+    return
   }
 
   // (2 ** 32) - 1
   if (bytesCount < 0xffffffff) {
-    const array = new Uint8Array(5 + bytesCount)
-    const view = new DataView(array.buffer)
-    view.setUint8(0, STR32_PREFIX)
-    view.setUint32(1, bytesCount, false)
-    array.set(strBuf, 5)
-    return array
+    byteArray.writeUint8(STR32_PREFIX)
+    byteArray.writeUint32(bytesCount)
+    byteArray.append(strBuf)
+    return
   }
   throw new Error("String's length cannot exceed (2^32)-1.")
 }
 
-export function encodeBuffer(buffer: Uint8Array): Uint8Array {
+function encodeBuffer(byteArray: ByteArray, buffer: Uint8Array): void {
   const bytesCount = buffer.byteLength
 
   // (2 ** 8) - 1
   if (bytesCount < 0xff) {
-    const array = new Uint8Array(2 + bytesCount)
-    const view = new DataView(array.buffer)
-    view.setUint8(0, BIN8_PREFIX)
-    view.setUint8(1, bytesCount)
-    array.set(buffer, 2)
-    return array
+    byteArray.writeUint8(BIN8_PREFIX)
+    byteArray.writeUint8(bytesCount)
+    byteArray.append(buffer)
+    return
   }
 
   // (2 ** 16) - 1
   if (bytesCount < 0xffff) {
-    const array = new Uint8Array(3 + bytesCount)
-    const view = new DataView(array.buffer)
-    view.setUint8(0, BIN16_PREFIX)
-    view.setUint16(1, bytesCount)
-    array.set(buffer, 3)
-    return array
+    byteArray.writeUint8(BIN16_PREFIX)
+    byteArray.writeUint16(bytesCount)
+    byteArray.append(buffer)
+    return
   }
 
   // (2 ** 32) - 1
   if (bytesCount < 0xffffffff) {
-    const array = new Uint8Array(5 + bytesCount)
-    const view = new DataView(array.buffer)
-    view.setUint8(0, BIN32_PREFIX)
-    view.setUint32(1, bytesCount)
-    array.set(buffer, 5)
-    return array
+    byteArray.writeUint8(BIN32_PREFIX)
+    byteArray.writeUint32(bytesCount)
+    byteArray.append(buffer)
+    return
   }
 
   throw new Error("Length of binary value cannot exceed (2^32)-1.")
 }
 
-export function encodeArray(arraySize: number): Uint8Array {
+function encodeArray(byteArray: ByteArray, arraySize: number): void {
   // fixarray
   if (arraySize < 0xf) {
-    const array = new Uint8Array(1)
-    array[0] = 0b10010000 + arraySize
-    return array
+    byteArray.writeUint8(0b10010000 + arraySize)
+    return
   }
 
   // array 16
   if (arraySize < 0xffff) {
-    const view = new DataView(new ArrayBuffer(3))
-    view.setUint8(0, ARRAY16_PREFIX)
-    view.setUint16(1, arraySize, false)
-    return new Uint8Array(view.buffer)
+    byteArray.writeUint8(ARRAY16_PREFIX)
+    byteArray.writeUint16(arraySize)
+    return
   }
 
   // array 32
   if (arraySize < 0xffffffff) {
-    const view = new DataView(new ArrayBuffer(5))
-    view.setUint8(0, ARRAY32_PREFIX)
-    view.setUint32(1, arraySize, false)
-    return new Uint8Array(view.buffer)
+    byteArray.writeUint8(ARRAY32_PREFIX)
+    byteArray.writeUint32(arraySize)
+    return
   }
 
   throw new Error("Number of elements cannot exceed (2^32)-1.")
 }
 
-export function encodeMap(mapSize: number): Uint8Array {
+function encodeMap(byteArray: ByteArray, mapSize: number): void {
   // fixmap
   if (mapSize < 0xf) {
-    const array = new Uint8Array(1)
-    array[0] = 0b10000000 + mapSize
-    return array
+    byteArray.writeUint8(0b10000000 + mapSize)
+    return
   }
 
   // map 16
   if (mapSize < 0xffff) {
-    const view = new DataView(new ArrayBuffer(3))
-    view.setUint8(0, MAP16_PREFIX)
-    view.setUint16(1, mapSize, false)
-    return new Uint8Array(view.buffer)
+    byteArray.writeUint8(MAP16_PREFIX)
+    byteArray.writeUint16(mapSize)
+    return
   }
 
   // map 32
   if (mapSize < 0xffffffff) {
-    const view = new DataView(new ArrayBuffer(5))
-    view.setUint8(0, MAP32_PREFIX)
-    view.setUint32(1, mapSize, false)
-    return new Uint8Array(view.buffer)
+    byteArray.writeUint8(MAP32_PREFIX)
+    byteArray.writeUint32(mapSize)
+    return
   }
 
   throw new Error("Number of pairs cannot exceed (2^32)-1.")
 }
 
-export function encodeExt(type: number, data: Uint8Array): Uint8Array {
+function encodeExt(byteArray: ByteArray, type: number, data: Uint8Array): void {
   const byteLength = data.byteLength
 
   let firstByte: number | undefined
   let byteLengthLength = 0
   let byteLengthPos: number | undefined
-  let typePos = 1
-  let dataPos = 2
+  // let typePos = 1
+  // let dataPos = 2
 
   // fixint
   if (byteLength === 1) {
@@ -375,41 +341,37 @@ export function encodeExt(type: number, data: Uint8Array): Uint8Array {
     firstByte = EXT8_PREFIX
     byteLengthLength = 1
     byteLengthPos = 1
-    typePos = 2
-    dataPos = 3
+    // typePos = 2
+    // dataPos = 3
   } else if (byteLength < 0xffff) {
     firstByte = EXT16_PREFIX
     byteLengthLength = 2
     byteLengthPos = 1
-    typePos = 3
-    dataPos = 4
+    // typePos = 3
+    // dataPos = 4
   } else if (byteLength < 0xffffffff) {
     firstByte = EXT32_PREFIX
     byteLengthLength = 4
     byteLengthPos = 1
-    typePos = 5
-    dataPos = 6
+    // typePos = 5
+    // dataPos = 6
   } else {
     throw new Error("Ext does not support data exceeding 2**32-1 bytes.")
   }
 
-  const buffer = new ArrayBuffer(1 + byteLengthLength + 1 + data.byteLength)
-  const array = new Uint8Array(buffer)
-  const view = new DataView(buffer)
-  view.setUint8(0, firstByte)
+  byteArray.writeUint8(firstByte)
   if (
     typeof byteLengthPos !== "undefined" &&
     typeof byteLengthLength !== "undefined"
   ) {
     if (byteLengthLength === 1) {
-      view.setUint8(byteLengthPos, byteLength)
+      byteArray.writeUint8(byteLength)
     } else if (byteLengthLength === 2) {
-      view.setUint16(byteLengthPos, byteLength, false)
+      byteArray.writeUint16(byteLength)
     } else {
-      view.setUint32(byteLengthPos, byteLength, false)
+      byteArray.writeUint32(byteLength)
     }
   }
-  view.setInt8(typePos, type)
-  array.set(data, dataPos)
-  return array
+  byteArray.writeInt8(type)
+  byteArray.append(data)
 }
