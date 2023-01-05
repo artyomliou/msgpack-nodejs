@@ -1,5 +1,14 @@
 # Versions
 
+## 1.3.4
+
+- optimize: encoder/decoder perf
+
+Again, encoding and decoding [aws-ip-ranges.json](test/dataset/aws-ip-ranges.json).
+
+encoding: 50ms
+decoding: 150ms -> 100ms
+
 ## 1.3.3
 
 - optimize: encoder/decoder perf with caching and profiler

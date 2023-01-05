@@ -33,312 +33,369 @@ import {
   MAP32_PREFIX,
 } from "../constants/index.js"
 import { DecodeOutput } from "../types.js"
+import { LruCache } from "../cache.js"
 
-export default class TypedValueResolver {
-  isMap = false
-  isArray = false
-  value: DecodeOutput = null
-
+export interface TypedValueResolverResult {
   /**
    * Total length of bytes. For array/map, this value does not include its elements.
    * Deserializer may use this information to move outside position.
    */
-  byteLength = 0
+  byteLength: number
+  value: DecodeOutput
 
-  /**
-   * (For array/map) Total count of elements.
-   */
-  elementCount = 0
+  isMap?: boolean
+  isArray?: boolean
+  /** (For array/map) Total count of elements. */
+  elementCount?: number
+}
 
-  constructor(
-    protected view: DataView,
-    protected uint8View: Uint8Array,
-    protected pos: number
-  ) {
-    // Get first byte & ove pointer for resolving value
-    // (Reminder: because of pass by value, increment happening here will not affect the outside one)
-    const firstByte = this.view.getUint8(this.pos)
-    this.pos++
+export default function TypedValueResolver(
+  view: DataView,
+  uint8View: Uint8Array,
+  pos: number
+) {
+  // Get first byte & ove pointer for resolving value
+  // (Reminder: because of pass by value, increment happening here will not affect the outside one)
+  const firstByte = view.getUint8(pos)
+  pos++
 
-    // Match first byte with prefixes
-    const decoder = firstByteDecoder.get(firstByte)
-    if (typeof decoder !== "undefined") {
-      decoder.call(this)
-      return
-    }
-
-    // Match first byte for these single byte data (fix-)
-    if (firstByte >= 0x00 && firstByte <= 0x7f) {
-      decodeFixintPositive.call(this)
-    } else if (firstByte >= 0xe0 && firstByte <= 0xff) {
-      decodeFixintNegative.call(this)
-    } else if (firstByte >= 0xa0 && firstByte <= 0xbf) {
-      decodeFixStr.call(this, firstByte)
-    } else if (firstByte >= 0x90 && firstByte <= 0x9f) {
-      decodeFixArray.call(this, firstByte)
-    } else if (firstByte >= 0x80 && firstByte <= 0x8f) {
-      decodeFixMap.call(this, firstByte)
-    } else {
-      const firtByteHex = firstByte.toString(16)
-      console.error("Unknown first byte.", firtByteHex)
-      throw new Error(`Unknown first byte. (${firtByteHex})`)
-    }
+  if (firstByte >= 0x00 && firstByte <= 0x7f) {
+    return decodeFixintPositive(view, pos)
+  } else if (firstByte >= 0xe0 && firstByte <= 0xff) {
+    return decodeFixintNegative(view, pos)
+  } else if (firstByte >= 0xa0 && firstByte <= 0xbf) {
+    return decodeStrWithFlexibleSize(uint8View, pos, 0, firstByte - 0xa0)
+  } else if (firstByte >= 0x90 && firstByte <= 0x9f) {
+    return decodeFixArray(firstByte)
+  } else if (firstByte >= 0x80 && firstByte <= 0x8f) {
+    return decodeFixMap(firstByte)
+  } else if (firstByte === STR8_PREFIX) {
+    return decodeStrWithFlexibleSize(uint8View, pos, 1, view.getUint8(pos))
+  } else if (firstByte === STR16_PREFIX) {
+    return decodeStrWithFlexibleSize(
+      uint8View,
+      pos,
+      2,
+      view.getUint16(pos, false)
+    )
+  } else if (firstByte === STR32_PREFIX) {
+    return decodeStrWithFlexibleSize(
+      uint8View,
+      pos,
+      4,
+      view.getUint32(pos, false)
+    )
+  } else if (firstByte === ARRAY16_PREFIX) {
+    return decodeArray16(view, pos)
+  } else if (firstByte === ARRAY32_PREFIX) {
+    return decodeArray32(view, pos)
+  } else if (firstByte === MAP16_PREFIX) {
+    return decodeMap16(view, pos)
+  } else if (firstByte === MAP32_PREFIX) {
+    return decodeMap32(view, pos)
+  } else if (firstByte === NIL) {
+    return decodeNil()
+  } else if (firstByte === BOOL_FALSE) {
+    return decodeFalse()
+  } else if (firstByte === BOOL_TRUE) {
+    return decodeTrue()
+  } else if (firstByte === UINT8_PREFIX) {
+    return decodeUint8(view, pos)
+  } else if (firstByte === UINT16_PREFIX) {
+    return decodeUint16(view, pos)
+  } else if (firstByte === UINT32_PREFIX) {
+    return decodeUint32(view, pos)
+  } else if (firstByte === UINT64_PREFIX) {
+    return decodeUint64(view, pos)
+  } else if (firstByte === INT8_PREFIX) {
+    return decodeInt8(view, pos)
+  } else if (firstByte === INT16_PREFIX) {
+    return decodeInt16(view, pos)
+  } else if (firstByte === INT32_PREFIX) {
+    return decodeInt32(view, pos)
+  } else if (firstByte === INT64_PREFIX) {
+    return decodeInt64(view, pos)
+  } else if (firstByte === FLOAT32_PREFIX) {
+    return decodeFloat32(view, pos)
+  } else if (firstByte === FLOAT64_PREFIX) {
+    return decodeFloat64(view, pos)
+  } else if (firstByte === BIN8_PREFIX) {
+    return decodeBinWithFlexibleSize(uint8View, pos, 1, view.getUint8(pos))
+  } else if (firstByte === BIN16_PREFIX) {
+    return decodeBinWithFlexibleSize(
+      uint8View,
+      pos,
+      2,
+      view.getUint16(pos, false)
+    )
+  } else if (firstByte === BIN32_PREFIX) {
+    return decodeBinWithFlexibleSize(
+      uint8View,
+      pos,
+      4,
+      view.getUint32(pos, false)
+    )
+  } else if (firstByte === EXT8_PREFIX) {
+    return decodeExtWithFlexibleSize(
+      view,
+      uint8View,
+      pos,
+      1,
+      view.getUint8(pos)
+    )
+  } else if (firstByte === EXT16_PREFIX) {
+    return decodeExtWithFlexibleSize(
+      view,
+      uint8View,
+      pos,
+      2,
+      view.getUint16(pos, false)
+    )
+  } else if (firstByte === EXT32_PREFIX) {
+    return decodeExtWithFlexibleSize(
+      view,
+      uint8View,
+      pos,
+      4,
+      view.getUint32(pos, false)
+    )
+  } else if (firstByte === FIXEXT1_PREFIX) {
+    return decodeExtWithFlexibleSize(view, uint8View, pos, 0, 1)
+  } else if (firstByte === FIXEXT2_PREFIX) {
+    return decodeExtWithFlexibleSize(view, uint8View, pos, 0, 2)
+  } else if (firstByte === FIXEXT4_PREFIX) {
+    return decodeExtWithFlexibleSize(view, uint8View, pos, 0, 4)
+  } else if (firstByte === FIXEXT8_PREFIX) {
+    return decodeExtWithFlexibleSize(view, uint8View, pos, 0, 8)
+  } else if (firstByte === FIXEXT16_PREFIX) {
+    return decodeExtWithFlexibleSize(view, uint8View, pos, 0, 16)
+  } else {
+    const firtByteHex = firstByte.toString(16)
+    console.error("Unknown first byte.", firtByteHex)
+    throw new Error(`Unknown first byte. (${firtByteHex})`)
   }
 }
 
-type NonFixDecoder = (this: TypedValueResolver) => void
-const firstByteDecoder: Map<number, NonFixDecoder> = new Map([
-  [UINT8_PREFIX, decodeUint8],
-  [UINT16_PREFIX, decodeUint16],
-  [UINT32_PREFIX, decodeUint32],
-  [UINT64_PREFIX, decodeUint64],
-  [INT8_PREFIX, decodeInt8],
-  [INT16_PREFIX, decodeInt16],
-  [INT32_PREFIX, decodeInt32],
-  [INT64_PREFIX, decodeInt64],
-  [NIL, decodeNil],
-  [BOOL_FALSE, decodeFalse],
-  [BOOL_TRUE, decodeTrue],
-  [FLOAT32_PREFIX, decodeFloat32],
-  [FLOAT64_PREFIX, decodeFloat64],
-  [STR8_PREFIX, decodeStr8],
-  [STR16_PREFIX, decodeStr16],
-  [STR32_PREFIX, decodeStr32],
-  [BIN8_PREFIX, decodeBin8],
-  [BIN16_PREFIX, decodeBin16],
-  [BIN32_PREFIX, decodeBin32],
-  [ARRAY16_PREFIX, decodeArray16],
-  [ARRAY32_PREFIX, decodeArray32],
-  [MAP16_PREFIX, decodeMap16],
-  [MAP32_PREFIX, decodeMap32],
-  [EXT8_PREFIX, decodeExt8],
-  [EXT16_PREFIX, decodeExt16],
-  [EXT32_PREFIX, decodeExt32],
-  [FIXEXT1_PREFIX, decodeFixExt1],
-  [FIXEXT2_PREFIX, decodeFixExt2],
-  [FIXEXT4_PREFIX, decodeFixExt4],
-  [FIXEXT8_PREFIX, decodeFixExt8],
-  [FIXEXT16_PREFIX, decodeFixExt16],
-])
-
-function decodeFixintPositive(this: TypedValueResolver) {
-  this.byteLength = 1
-  this.value = this.view.getUint8(this.pos - 1)
+function decodeFixintPositive(
+  view: DataView,
+  pos: number
+): TypedValueResolverResult {
+  return {
+    byteLength: 1,
+    value: view.getUint8(pos - 1),
+  }
 }
-function decodeFixintNegative(this: TypedValueResolver) {
-  this.byteLength = 1
-  this.value = this.view.getInt8(this.pos - 1)
+function decodeFixintNegative(
+  view: DataView,
+  pos: number
+): TypedValueResolverResult {
+  return {
+    byteLength: 1,
+    value: view.getInt8(pos - 1),
+  }
 }
-function decodeUint8(this: TypedValueResolver) {
-  this.byteLength = 2
-  this.value = this.view.getUint8(this.pos)
+function decodeUint8(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 2,
+    value: view.getUint8(pos),
+  }
 }
-function decodeUint16(this: TypedValueResolver) {
-  this.byteLength = 3
-  this.value = this.view.getUint16(this.pos, false)
+function decodeUint16(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 3,
+    value: view.getUint16(pos, false),
+  }
 }
-function decodeUint32(this: TypedValueResolver) {
-  this.byteLength = 5
-  this.value = this.view.getUint32(this.pos, false)
+function decodeUint32(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 5,
+    value: view.getUint32(pos, false),
+  }
 }
-function decodeUint64(this: TypedValueResolver) {
-  this.byteLength = 9
-  this.value = this.view.getBigUint64(this.pos, false)
+function decodeUint64(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 9,
+    value: view.getBigUint64(pos, false),
+  }
 }
-function decodeInt8(this: TypedValueResolver) {
-  this.byteLength = 2
-  this.value = this.view.getInt8(this.pos)
+function decodeInt8(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 2,
+    value: view.getInt8(pos),
+  }
 }
-function decodeInt16(this: TypedValueResolver) {
-  this.byteLength = 3
-  this.value = this.view.getInt16(this.pos, false)
+function decodeInt16(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 3,
+    value: view.getInt16(pos, false),
+  }
 }
-function decodeInt32(this: TypedValueResolver) {
-  this.byteLength = 5
-  this.value = this.view.getInt32(this.pos, false)
+function decodeInt32(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 5,
+    value: view.getInt32(pos, false),
+  }
 }
-function decodeInt64(this: TypedValueResolver) {
-  this.byteLength = 9
-  this.value = this.view.getBigInt64(this.pos, false)
+function decodeInt64(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 9,
+    value: view.getBigInt64(pos, false),
+  }
 }
 
-function decodeNil(this: TypedValueResolver): void {
-  this.byteLength = 1
-  this.value = null
+function decodeNil(): TypedValueResolverResult {
+  return {
+    byteLength: 1,
+    value: null,
+  }
 }
 
-function decodeTrue(this: TypedValueResolver): void {
-  this.byteLength = 1
-  this.value = true
+function decodeTrue(): TypedValueResolverResult {
+  return {
+    byteLength: 1,
+    value: true,
+  }
 }
-function decodeFalse(this: TypedValueResolver): void {
-  this.byteLength = 1
-  this.value = false
-}
-
-function decodeFloat32(this: TypedValueResolver): void {
-  this.byteLength = 5
-  this.value = this.view.getFloat32(this.pos, false)
-}
-
-function decodeFloat64(this: TypedValueResolver): void {
-  this.byteLength = 9
-  this.value = this.view.getFloat64(this.pos, false)
+function decodeFalse(): TypedValueResolverResult {
+  return {
+    byteLength: 1,
+    value: false,
+  }
 }
 
-function decodeFixStr(this: TypedValueResolver, firstByte: number): void {
-  decodeStrWithFlexibleSize.call(this, 0, firstByte - 0xa0)
+function decodeFloat32(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 5,
+    value: view.getFloat32(pos, false),
+  }
 }
 
-function decodeStr8(this: TypedValueResolver): void {
-  decodeStrWithFlexibleSize.call(this, 1, this.view.getUint8(this.pos))
-}
-
-function decodeStr16(this: TypedValueResolver): void {
-  decodeStrWithFlexibleSize.call(this, 2, this.view.getUint16(this.pos, false))
-}
-
-function decodeStr32(this: TypedValueResolver): void {
-  decodeStrWithFlexibleSize.call(this, 4, this.view.getUint32(this.pos, false))
+function decodeFloat64(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 9,
+    value: view.getFloat64(pos, false),
+  }
 }
 
 const textDecoder = new TextDecoder()
 function decodeStrWithFlexibleSize(
-  this: TypedValueResolver,
+  uint8View: Uint8Array,
+  pos: number,
   sizeByteLength: number,
   dataByteLength: number
-): void {
+): TypedValueResolverResult {
   // Calculate total length of this string value, so we can move outside position properly
-  this.byteLength = 1 + sizeByteLength + dataByteLength
+  const byteLength = 1 + sizeByteLength + dataByteLength
 
   // Calculate the range
-  const strDataRange = calculateDataRange(
-    this.pos,
-    sizeByteLength,
-    dataByteLength
+  const strDataRange = calculateDataRange(pos, sizeByteLength, dataByteLength)
+  const value = textDecoder.decode(
+    uint8View.subarray(strDataRange.start, strDataRange.end)
   )
-  this.value = textDecoder.decode(
-    this.uint8View.subarray(strDataRange.start, strDataRange.end)
-  )
-}
-
-function decodeBin8(this: TypedValueResolver): void {
-  decodeBinWithFlexibleSize.call(this, 1, this.view.getUint8(this.pos))
-}
-
-function decodeBin16(this: TypedValueResolver): void {
-  decodeBinWithFlexibleSize.call(this, 2, this.view.getUint16(this.pos, false))
-}
-
-function decodeBin32(this: TypedValueResolver): void {
-  decodeBinWithFlexibleSize.call(this, 4, this.view.getUint32(this.pos, false))
+  return {
+    byteLength,
+    value,
+  }
 }
 
 function decodeBinWithFlexibleSize(
-  this: TypedValueResolver,
+  uint8View: Uint8Array,
+  pos: number,
   sizeByteLength: number,
   dataByteLength: number
-): void {
-  this.byteLength = 1 + sizeByteLength + dataByteLength
-  const binDataRange = calculateDataRange(
-    this.pos,
-    sizeByteLength,
-    dataByteLength
-  )
-  this.value = this.uint8View.subarray(binDataRange.start, binDataRange.end)
+): TypedValueResolverResult {
+  const byteLength = 1 + sizeByteLength + dataByteLength
+  const binDataRange = calculateDataRange(pos, sizeByteLength, dataByteLength)
+  const value = uint8View.subarray(binDataRange.start, binDataRange.end)
+  return {
+    byteLength,
+    value,
+  }
 }
 
-function decodeFixArray(this: TypedValueResolver, firstByte: number): void {
-  this.isArray = true
-  this.value = []
-  this.byteLength = 1
-  this.elementCount = firstByte - 0b10010000
+function decodeFixArray(firstByte: number): TypedValueResolverResult {
+  return {
+    byteLength: 1,
+    value: [],
+    isArray: true,
+    elementCount: firstByte - 0b10010000,
+  }
 }
 
-function decodeArray16(this: TypedValueResolver): void {
-  this.isArray = true
-  this.value = []
-  this.byteLength = 3
-  this.elementCount = this.view.getUint16(this.pos, false)
+function decodeArray16(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 3,
+    value: [],
+    isArray: true,
+    elementCount: view.getUint16(pos, false),
+  }
 }
 
-function decodeArray32(this: TypedValueResolver): void {
-  this.isArray = true
-  this.value = []
-  this.byteLength = 5
-  this.elementCount = this.view.getUint32(this.pos, false)
+function decodeArray32(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 5,
+    value: [],
+    isArray: true,
+    elementCount: view.getUint32(pos, false),
+  }
 }
 
-function decodeFixMap(this: TypedValueResolver, firstByte: number): void {
-  this.isMap = true
-  this.value = {}
-  this.byteLength = 1
-  this.elementCount = firstByte - 0x80
+function decodeFixMap(firstByte: number): TypedValueResolverResult {
+  return {
+    byteLength: 1,
+    value: {},
+    isMap: true,
+    elementCount: firstByte - 0x80,
+  }
 }
 
-function decodeMap16(this: TypedValueResolver): void {
-  this.isMap = true
-  this.value = {}
-  this.byteLength = 3
-  this.elementCount = this.view.getUint16(this.pos, false)
+function decodeMap16(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 3,
+    value: {},
+    isMap: true,
+    elementCount: view.getUint16(pos, false),
+  }
 }
 
-function decodeMap32(this: TypedValueResolver): void {
-  this.isMap = true
-  this.value = {}
-  this.byteLength = 5
-  this.elementCount = this.view.getUint32(this.pos, false)
-}
-
-function decodeFixExt1(this: TypedValueResolver): void {
-  decodeExtWithFlexibleSize.call(this, 0, 1)
-}
-function decodeFixExt2(this: TypedValueResolver): void {
-  decodeExtWithFlexibleSize.call(this, 0, 2)
-}
-function decodeFixExt4(this: TypedValueResolver): void {
-  decodeExtWithFlexibleSize.call(this, 0, 4)
-}
-function decodeFixExt8(this: TypedValueResolver): void {
-  decodeExtWithFlexibleSize.call(this, 0, 8)
-}
-function decodeFixExt16(this: TypedValueResolver): void {
-  decodeExtWithFlexibleSize.call(this, 0, 16)
-}
-function decodeExt8(this: TypedValueResolver): void {
-  decodeExtWithFlexibleSize.call(this, 1, this.view.getUint8(this.pos))
-}
-function decodeExt16(this: TypedValueResolver): void {
-  decodeExtWithFlexibleSize.call(this, 2, this.view.getUint16(this.pos, false))
-}
-function decodeExt32(this: TypedValueResolver): void {
-  decodeExtWithFlexibleSize.call(this, 4, this.view.getUint32(this.pos, false))
+function decodeMap32(view: DataView, pos: number): TypedValueResolverResult {
+  return {
+    byteLength: 5,
+    value: {},
+    isMap: true,
+    elementCount: view.getUint32(pos, false),
+  }
 }
 
 function decodeExtWithFlexibleSize(
-  this: TypedValueResolver,
+  view: DataView,
+  uint8View: Uint8Array,
+  pos: number,
   sizeByteLength: number,
   dataByteLength: number
-): void {
-  this.byteLength = 1 + sizeByteLength + 1 + dataByteLength
+): TypedValueResolverResult {
+  const byteLength = 1 + sizeByteLength + 1 + dataByteLength
 
   // Reminder: At this point, pos is after firstByte
-  const extType = this.view.getInt8(this.pos + sizeByteLength)
+  const extType = view.getInt8(pos + sizeByteLength)
 
   // Offset should include "size" and "type"
   const extDataRange = calculateDataRange(
-    this.pos,
+    pos,
     sizeByteLength + 1,
     dataByteLength
   )
-  const data = this.uint8View.subarray(extDataRange.start, extDataRange.end)
+  const data = uint8View.subarray(extDataRange.start, extDataRange.end)
 
   // Postprocess for supported extType
   const ext = getExtension(extType)
   if (typeof ext === "undefined") {
     throw new Error("Does not support unknown ext type.")
-  } else {
-    this.value = ext.decode(data)
+  }
+  const value = ext.decode(data)
+  return {
+    byteLength,
+    value,
   }
 }
 

@@ -9,8 +9,6 @@ describe("Realworld", () => {
   it("AWS IP Ranges", () => {
     const v = awsIpRanges
     assert.deepStrictEqual(decode(encode(v)), v)
-    console.log(cacheStatistic())
-    console.log(bufferAllocatorStat())
   })
   it("Google Maps Distance Matrix API", () => {
     const v = googleMapsDistanceMatrix

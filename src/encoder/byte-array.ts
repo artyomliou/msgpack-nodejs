@@ -1,5 +1,5 @@
 const bufferAllocator = {
-  base: 4096,
+  base: 1024 * 16,
   multiplier: 1,
   get size() {
     return this.base * this.multiplier
@@ -57,6 +57,7 @@ export default class ByteArray {
   }
 
   getBuffer(): Uint8Array {
+    bufferAllocator.stat.copied += this.#stat.copied
     bufferAllocator.keepEncodedSize(this.#pos)
     return this.#array.subarray(0, this.#pos)
   }

@@ -22,6 +22,7 @@ The purpose behind is learning by doing, which focuses on modern tools/technique
   - [Lesson learned](#lessons-learned)
 - [Project status](#project-status)
   - [Compability](#compability)
+  - [Benchmark](#benchmark)
   - [Limitation](#limitation)
   - [TODO](#todo)
 - [References](#references)
@@ -106,8 +107,8 @@ encodeStream.write({ compact: true, schema: 0 })
 
 You can register extension, with a number (0 ~ 127) as its type, and a object constructor that encoder and decoder will use.
 
-[Example](test/extension.spec.ts)
-[Built-in Date() extension](src/extensions/timestamp-extension.ts)
+- [Example](test/extension.spec.ts)
+- [Built-in Date() extension](src/extensions/timestamp-extension.ts)
 
 ---
 
@@ -115,23 +116,20 @@ You can register extension, with a number (0 ~ 127) as its type, and a object co
 
 ## Encode
 
-[Encoder](src/encoder/encoder.ts) uses a recursive function `match()` to match JSON structure (primitive value, object, array or nested).
+[Encoder](src/encoder/encoder.ts) uses a recursive function `match()` to match JSON structure (primitive value, object, array or nested), and pushes anything encoded into [ByteArray](src/encoder/byte-array.ts).
 
-`match()` function always get a argument `val`. It will use different handler to handle `val` after determining its type.
-For each map/array encountered, it will be iterated, then each elements will be passed into `match` and return its serialization.
-If it's a primitive value then it will be simply serialized and returned.
-If it's a map/array then it will be serialized too, but only with information like "what type is this value?" and "how many elements it has?".
-Then `match()` will dive into (aka iterate) each elements.
+There are 2 optimization strategies:
 
-All serialized (binary) will be pushed into [ByteArray](src/encoder/byte-array.ts).
-After all `match()` were executed, this ByteArray will be concatenated and returned.
+- [ByteArray](src/encoder/byte-array.ts) starts will a small buffer (1K), when it's not enough, it will create another bigger buffer, and copy into it. To avoid too many copy operation (because it wastes CPU & time), it remember the average of previous encoded size, and adjust size of next allocated buffer.
+- Since the key of JSON object is string, and the object structure usually has pattern, which means most of these keys are cachable. [Encoder](src/encoder/encoder.ts) deploys [LruCache](src/cache.ts) for this. If these keys are too dynamic to cache, this LruCache still could handle this by using a Set() to block any rare keys.
 
 ## Decode
 
 There's 2 files handling with different concerns.
 
-- [Decoder](src/decoder/decoder.ts) will compose typed values in proper structure. It utlizes [TypedValueResolver](src/decoder/typed-value-resolver.ts) for resolving typed value. If it get a map/array, then initialize a new [StructContext](src/decoder/struct-context.ts) and push subsequent values into the structure (map/array), with the maximum limit of elements that it could possess. If this limit were met, leave current context, pop previous context from stack.
-- [TypedValueResolver](src/decoder/typed-value-resolver.ts) are full of byte resolving logic. To be specific, resolve first byte for type, based on this, we can resolve remaining bytes with type-specific procedure.
+- [Decoder](src/decoder/decoder.ts) uses [StructBuilder](src/decoder/struct-builder.ts) to handle every result of [TypedValueResolver](src/decoder/typed-value-resolver.ts).
+- [StructBuilder](src/decoder/struct-builder.ts) takes anything as argument. It uses stack to keep track of every array/map in which it is pushing any subsequent value. For every array/map, it it gets every thing it could have, then we will pop previous array/map from stack.
+- [TypedValueResolver](src/decoder/typed-value-resolver.ts) will get the first byte and resolve remaining bytes.
 
 ## Inspiration
 
@@ -161,6 +159,23 @@ There's 2 files handling with different concerns.
 | Node.js 16 | ✅          |
 | Node.js 14 | ✅          |
 | Node.js 12 | ❌          |
+
+## Benchmark
+
+By utlizing the great [benchmark tool by msgpack-lite](https://github.com/kawanet/msgpack-lite/blob/master/lib/benchmark.js),
+we can say the encoder (of this project) is fast enough,
+but the decoder is still too slow.
+
+Runs on node.js 16 & R5-5625U.
+
+| operation                                    |      op |   ms |   op/s |
+| -------------------------------------------- | ------: | ---: | -----: |
+| buf = Buffer(JSON.stringify(obj));           | 1017600 | 5000 | 203520 |
+| obj = JSON.parse(buf);                       | 1283400 | 5000 | 256680 |
+| buf = require("msgpack-lite").encode(obj);   |  659700 | 5000 | 131940 |
+| obj = require("msgpack-lite").decode(buf);   |  375900 | 5000 |  75180 |
+| buf = require("msgpack-nodejs").encode(obj); |  572500 | 5000 | 114500 |
+| obj = require("msgpack-nodejs").decode(buf); |  137000 | 5001 |  27394 |
 
 ## Limitation
 
