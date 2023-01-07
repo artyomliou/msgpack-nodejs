@@ -1,57 +1,77 @@
 import { DecodeOutput } from "src/types"
-import { TypedValueResolverResult } from "./typed-value-resolver"
 
-type Container = Array<unknown> | Record<string, unknown>
+type Struct = Array<unknown> | Record<string, unknown>
+type MapKey = string | null
 
 export default class StructBuilder {
-  stack: Array<[Container, number]> = []
-  cur: Container | null = null
+  struct!: Struct
   elementsLeft = 0
-  mapKey: string | null = null
-  output?: DecodeOutput
+  stack: Array<[Struct, number, MapKey]> = []
+  mapKey: MapKey = null
 
-  handle(res: TypedValueResolverResult) {
-    if (this.cur === null && !res.isArray && !res.isMap) {
-      this.output = res.value
+  /**
+   * Insert new struct in current struct, then replace reference
+   */
+  newStruct(val: Struct, size = 0) {
+    this.insertValue(val)
+
+    // Optimize: We dont have to push and pop this empty struct
+    if (this.struct && size === 0) {
       return
     }
 
-    // Push value into current structure, if there's one
-    if (this.cur instanceof Array) {
-      this.cur.push(res.value)
+    // Save current reference into stack
+    if (this.struct) {
+      this.stack.push([this.struct, this.elementsLeft, this.mapKey])
+    }
+
+    // Replace reference
+    if (val instanceof Array) {
+      this.elementsLeft = size
+      this.struct = val
+      this.mapKey = null
+    } else if (val) {
+      this.elementsLeft = size
+      this.struct = val as Record<string | symbol, unknown>
+      this.mapKey = null
+    }
+  }
+
+  /**
+   * Insert any value into current struct
+   */
+  insertValue(val: DecodeOutput): boolean {
+    if (!this.struct) {
+      return false
+    } else if (this.struct instanceof Array) {
+      this.struct.push(val)
       this.elementsLeft--
-    } else if (this.cur !== null) {
-      if (this.mapKey === null && typeof res.value === "string") {
-        this.mapKey = res.value
-        return
-      } else if (this.mapKey !== null) {
-        this.cur[this.mapKey] = res.value
+      this.#popStack()
+    } else {
+      if (this.mapKey) {
+        this.struct[this.mapKey] = val
         this.mapKey = null
         this.elementsLeft--
+        this.#popStack()
+      } else {
+        if (typeof val !== "string") {
+          throw new Error("Map key should be string.")
+        }
+        this.mapKey = val
       }
     }
+    return true
+  }
 
-    // For a new map/array, in order to push subsequent resolved value in, we must switch context into this map/array.
-    if (res.isArray || res.isMap) {
-      if (this.cur != null) {
-        this.stack.push([this.cur, this.elementsLeft])
-      }
-      this.cur = res.value as Container
-      this.elementsLeft = res.elementCount as number
-    }
-
-    /**
-     * If a map/array has all elements belonging to it, leave current context.
-     */
+  /**
+   * If a struct got all elements it could have, leave current context
+   */
+  #popStack() {
     while (this.elementsLeft === 0 && this.stack.length > 0) {
-      const prev = this.stack.pop()
-      if (prev) {
-        this.cur = prev[0]
-        this.elementsLeft = prev[1]
-      }
-    }
-    if (this.stack.length === 0) {
-      this.output = this.cur
+      const parent = this.stack.pop() as [Struct, number, MapKey]
+      this.struct = parent[0]
+      this.elementsLeft = parent[1]
+      this.mapKey = parent[2]
     }
   }
 }
