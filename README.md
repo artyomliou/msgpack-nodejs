@@ -18,7 +18,6 @@ The purpose behind is learning by doing, which focuses on modern tools/technique
 - [Implementation detail](#implementation-detail)
   - [Encode](#encode)
   - [Decode](#decode)
-  - [Inspiration](#inspiration)
   - [Lesson learned](#lessons-learned)
 - [Project status](#project-status)
   - [Compability](#compability)
@@ -131,10 +130,6 @@ There's 2 files handling with different concerns.
 - [StructBuilder](src/decoder/struct-builder.ts) takes anything as argument. It uses stack to keep track of every array/map in which it is pushing any subsequent value. For every array/map, it it gets every thing it could have, then we will pop previous array/map from stack.
 - [TypedValueResolver](src/decoder/typed-value-resolver.ts) will get the first byte and resolve remaining bytes.
 
-## Inspiration
-
-1. [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) - For better buffer allocation strategy
-
 ## Lessons learned
 
 - The difference between [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer), [TypedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray) and the node.js API [Buffer](https://nodejs.org/api/buffer.html)
@@ -195,3 +190,5 @@ Runs on node.js 16 & R5-5625U.
 - [使用 ESLint, Prettier, Husky, Lint-staged 以及 Commitizen 提升專案品質及一致性](https://medium.com/@danielhu95/set-up-eslint-pipeline-zh-tw-990d7d9eb68e)
 - [samerbuna/efficient-node](https://github.com/samerbuna/efficient-node/blob/main/400-node-streams.adoc)
 - [Best practices for creating a modern npm package](https://snyk.io/blog/best-practices-create-modern-npm-package/)
+- [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) - For better buffer allocation strategy
+- [How to improve MessagePack JavaScript decoder speed by 2.6 times.](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times) - For pre-allocated array

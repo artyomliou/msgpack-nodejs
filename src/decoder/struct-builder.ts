@@ -44,7 +44,7 @@ export default class StructBuilder {
     if (!this.struct) {
       return false
     } else if (this.struct instanceof Array) {
-      this.struct.push(val)
+      this.struct[this.struct.length - this.elementsLeft] = val
       this.elementsLeft--
       this.#popStack()
     } else {

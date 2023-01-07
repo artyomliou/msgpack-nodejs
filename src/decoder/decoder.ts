@@ -9,7 +9,7 @@ export default function msgPackDecode(buffer: Uint8Array): DecodeOutput {
   const builder = new StructBuilder()
   for (const res of parseBuffer(buffer)) {
     if (res instanceof ArrayDescriptor) {
-      builder.newStruct([], res.size)
+      builder.newStruct(new Array(res.size), res.size)
     } else if (res instanceof ObjectDescriptor) {
       builder.newStruct({}, res.size)
     } else if (!builder.insertValue(res)) {
