@@ -40,6 +40,8 @@ export class ArrayDescriptor {
 export class ObjectDescriptor {
   constructor(public size: number) {}
 }
+const arrayDescPool: Record<number, ArrayDescriptor> = {}
+const objDescPool: Record<number, ObjectDescriptor> = {}
 
 export default function* parseBuffer(buffer: Uint8Array) {
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
@@ -55,27 +57,7 @@ export default function* parseBuffer(buffer: Uint8Array) {
     const firstByte = view.getUint8(pos)
     pos++
 
-    if (firstByte >= 0x00 && firstByte <= 0x7f) {
-      yield view.getUint8(pos - 1)
-    } else if (firstByte >= 0xe0 && firstByte <= 0xff) {
-      yield view.getInt8(pos - 1)
-    } else if (firstByte >= 0x90 && firstByte <= 0x9f) {
-      yield new ArrayDescriptor(firstByte - 0b10010000)
-    } else if (firstByte === ARRAY16_PREFIX) {
-      yield new ArrayDescriptor(view.getUint16(pos, false))
-      pos += 2
-    } else if (firstByte === ARRAY32_PREFIX) {
-      yield new ArrayDescriptor(view.getUint32(pos, false))
-      pos += 4
-    } else if (firstByte >= 0x80 && firstByte <= 0x8f) {
-      yield new ObjectDescriptor(firstByte - 0x80)
-    } else if (firstByte === MAP16_PREFIX) {
-      yield new ObjectDescriptor(view.getUint16(pos, false))
-      pos += 2
-    } else if (firstByte === MAP32_PREFIX) {
-      yield new ObjectDescriptor(view.getUint32(pos, false))
-      pos += 4
-    } else if (firstByte >= 0xa0 && firstByte <= 0xbf) {
+    if (firstByte >= 0xa0 && firstByte <= 0xbf) {
       const sizeByte = 0
       const dataByte = firstByte - 0xa0
       yield decodeStrWithFlexibleSize(buffer, pos, sizeByte, dataByte)
@@ -95,12 +77,44 @@ export default function* parseBuffer(buffer: Uint8Array) {
       const dataByte = view.getUint32(pos, false)
       yield decodeStrWithFlexibleSize(buffer, pos, sizeByte, dataByte)
       pos += sizeByte + dataByte
-    } else if (firstByte === NIL) {
-      yield null
-    } else if (firstByte === BOOL_FALSE) {
-      yield false
-    } else if (firstByte === BOOL_TRUE) {
-      yield true
+    } else if (firstByte >= 0x00 && firstByte <= 0x7f) {
+      yield view.getUint8(pos - 1)
+    } else if (firstByte >= 0xe0 && firstByte <= 0xff) {
+      yield view.getInt8(pos - 1)
+    } else if (firstByte >= 0x90 && firstByte <= 0x9f) {
+      const size = firstByte - 0b10010000
+      yield size in arrayDescPool
+        ? arrayDescPool[size]
+        : (arrayDescPool[size] = new ArrayDescriptor(size))
+    } else if (firstByte === ARRAY16_PREFIX) {
+      const size = view.getUint16(pos, false)
+      yield size in arrayDescPool
+        ? arrayDescPool[size]
+        : (arrayDescPool[size] = new ArrayDescriptor(size))
+      pos += 2
+    } else if (firstByte === ARRAY32_PREFIX) {
+      const size = view.getUint32(pos, false)
+      yield size in arrayDescPool
+        ? arrayDescPool[size]
+        : (arrayDescPool[size] = new ArrayDescriptor(size))
+      pos += 4
+    } else if (firstByte >= 0x80 && firstByte <= 0x8f) {
+      const size = firstByte - 0x80
+      yield size in objDescPool
+        ? objDescPool[size]
+        : (objDescPool[size] = new ObjectDescriptor(size))
+    } else if (firstByte === MAP16_PREFIX) {
+      const size = view.getUint16(pos, false)
+      yield size in objDescPool
+        ? objDescPool[size]
+        : (objDescPool[size] = new ObjectDescriptor(size))
+      pos += 2
+    } else if (firstByte === MAP32_PREFIX) {
+      const size = view.getUint32(pos, false)
+      yield size in objDescPool
+        ? objDescPool[size]
+        : (objDescPool[size] = new ObjectDescriptor(size))
+      pos += 4
     } else if (firstByte === UINT8_PREFIX) {
       yield view.getUint8(pos)
       pos += 1
@@ -131,6 +145,12 @@ export default function* parseBuffer(buffer: Uint8Array) {
     } else if (firstByte === FLOAT64_PREFIX) {
       yield view.getFloat64(pos, false)
       pos += 8
+    } else if (firstByte === NIL) {
+      yield null
+    } else if (firstByte === BOOL_FALSE) {
+      yield false
+    } else if (firstByte === BOOL_TRUE) {
+      yield true
     } else if (firstByte === BIN8_PREFIX) {
       const sizeByte = 1
       const dataByte = view.getUint8(pos)
