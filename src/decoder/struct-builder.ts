@@ -4,10 +4,10 @@ type Struct = Array<unknown> | Record<string, unknown>
 type MapKey = string | null
 
 export default class StructBuilder {
-  struct!: Struct
-  elementsLeft = 0
-  stack: Array<[Struct, number, MapKey]> = []
-  mapKey: MapKey = null
+  public struct!: Struct
+  private elementsLeft = 0
+  private stack: Array<[Struct, number, MapKey]> = []
+  private mapKey: MapKey = null
 
   /**
    * Insert new struct in current struct, then replace reference
@@ -46,13 +46,13 @@ export default class StructBuilder {
     } else if (this.struct instanceof Array) {
       this.struct[this.struct.length - this.elementsLeft] = val
       this.elementsLeft--
-      this.#popStack()
+      this.popStack()
     } else {
       if (this.mapKey) {
         this.struct[this.mapKey] = val
         this.mapKey = null
         this.elementsLeft--
-        this.#popStack()
+        this.popStack()
       } else {
         if (typeof val !== "string") {
           throw new Error("Map key should be string.")
@@ -66,7 +66,7 @@ export default class StructBuilder {
   /**
    * If a struct got all elements it could have, leave current context
    */
-  #popStack() {
+  private popStack() {
     while (this.elementsLeft === 0 && this.stack.length > 0) {
       const parent = this.stack.pop() as [Struct, number, MapKey]
       this.struct = parent[0]

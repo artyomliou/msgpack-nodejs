@@ -5,14 +5,14 @@ export function cacheStatistic() {
 }
 
 export class LruCache<K, C = Uint8Array> {
-  stat = {
+  private cache: Map<K, C> = new Map()
+  private rareKeys?: Set<K>
+  public stat = {
     hit: 0,
     missed: 0,
     evicted: 0,
     rare: 0,
   }
-  cache: Map<K, C> = new Map()
-  rareKeys?: Set<K>
 
   constructor(public size = 30) {
     // For stat aggregation
@@ -62,7 +62,9 @@ export class LruCache<K, C = Uint8Array> {
   }
 
   noRareKeys() {
-    this.rareKeys = new Set()
+    if (!this.rareKeys) {
+      this.rareKeys = new Set()
+    }
     return this
   }
 }

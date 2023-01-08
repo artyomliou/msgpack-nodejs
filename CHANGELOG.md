@@ -1,5 +1,11 @@
 # Versions
 
+## Pending
+
+- optimize: use typescript's private class field. [^1]
+
+[^1]: [The performance of private class fields was bad before Node.js 18](https://v8.dev/blog/faster-class-features), and [private and protected in Typescript are only are only enforced during type checking](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats), so it's possible that this change would bring performance improvement.
+
 ## 1.3.5
 
 - refactor(decoder): for better readability & performance
