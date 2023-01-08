@@ -1,20 +1,21 @@
 const bufferAllocator = {
-  base: 1024 * 2,
-  size(multiplier = 1) {
-    return this.base * multiplier
+  base: 1024 * 1,
+  size(exponent = 0) {
+    const val = this.base * 2 ** exponent
+    if (val > this.stat.highestSize) {
+      this.stat.highestSize = val
+    }
+    return val
   },
 
   stat: {
     copied: 0,
-    optimizeEnlarged: 0,
-    optimizeShrinked: 0,
+    highestSize: 0,
   },
 }
 
 export function bufferAllocatorStat() {
-  return Object.assign({}, bufferAllocator.stat, {
-    size: bufferAllocator.size(),
-  })
+  return bufferAllocator.stat
 }
 
 /**
@@ -24,10 +25,7 @@ export default class ByteArray {
   private array: Uint8Array
   private view: DataView
   private pos: number
-  private newBufferMultiplier = 0
-  private stat = {
-    copied: 0,
-  }
+  private newBufferExponent = 0
 
   constructor() {
     this.array = new Uint8Array(bufferAllocator.size())
@@ -36,7 +34,6 @@ export default class ByteArray {
   }
 
   getBuffer(): Uint8Array {
-    bufferAllocator.stat.copied += this.stat.copied
     return this.array.subarray(0, this.pos)
   }
 
@@ -45,7 +42,7 @@ export default class ByteArray {
     if (reqSize >= this.array.byteLength) {
       let newSize = reqSize
       while (newSize <= reqSize) {
-        newSize += bufferAllocator.size(this.newBufferMultiplier++) // Incremental
+        newSize += bufferAllocator.size(this.newBufferExponent++) // Incremental
       }
 
       // Create new buffer and copy content from original buffer
@@ -55,7 +52,7 @@ export default class ByteArray {
       this.array = newArray
 
       // Increment stat
-      this.stat.copied++
+      bufferAllocator.stat.copied++
     }
 
     cb()

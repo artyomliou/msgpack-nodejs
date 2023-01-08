@@ -3,6 +3,7 @@
 ## Pending
 
 - optimize: use typescript's private class field. [^1]
+- optimize(encoder): exponential buffer allocation
 
 [^1]: [The performance of private class fields was bad before Node.js 18](https://v8.dev/blog/faster-class-features), and [private and protected in Typescript are only are only enforced during type checking](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats), so it's possible that this change would bring performance improvement.
 
