@@ -51,17 +51,8 @@ export function utf8Decode(
       sum = (sum << 6) | (bytes[offset++] & 0b00111111)
       sixBitsPadding--
     }
-    // https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/String/fromCharCode#returning_supplementary_characters
-    // https://zh.wikipedia.org/wiki/UTF-16#%E4%BB%8EU+10000%E5%88%B0U+10FFFF%E7%9A%84%E7%A0%81%E4%BD%8D
-    if (sum > 0xffff) {
-      sum -= 0x10000
-      const lead = (sum >>> 10) + 0xd800
-      const low = (sum & 0b1111111111) + 0xdc00
-      out.push(lead, low)
-    } else {
-      out.push(sum)
-    }
+    out.push(sum)
   }
 
-  return String.fromCharCode(...out)
+  return String.fromCodePoint(...out)
 }

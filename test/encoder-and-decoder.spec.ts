@@ -245,7 +245,7 @@ describe("Encoder/Decoder integration test", () => {
     it("map Map()", () => {
       const values = [
         [new Map(), {}],
-        [new Map([[1, 1]]), { 1: 1 }],
+        [new Map([["1", 1]]), { "1": 1 }],
       ]
       for (const [map, obj] of values) {
         assert.deepStrictEqual(decode(encode(map)), obj)
