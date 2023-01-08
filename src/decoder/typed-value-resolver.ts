@@ -33,6 +33,7 @@ import {
   MAP32_PREFIX,
 } from "../constants/index.js"
 import { debugMode } from "../constants/debug.js"
+import { utf8Decode } from "./utf8-decode.js"
 
 export class ArrayDescriptor {
   constructor(public size: number) {}
@@ -206,16 +207,19 @@ export default function* parseBuffer(buffer: Uint8Array) {
 
 const textDecoder = new TextDecoder()
 function decodeStrWithFlexibleSize(
-  uint8View: Uint8Array,
+  buffer: Uint8Array,
   pos: number,
   sizeByteLength: number,
   dataByteLength: number
 ): string {
-  // Calculate the range
   const strDataRange = calculateDataRange(pos, sizeByteLength, dataByteLength)
-  return textDecoder.decode(
-    uint8View.subarray(strDataRange.start, strDataRange.end)
-  )
+  if (dataByteLength < 200) {
+    return utf8Decode(buffer, strDataRange.start, strDataRange.end)
+  } else {
+    return textDecoder.decode(
+      buffer.subarray(strDataRange.start, strDataRange.end)
+    )
+  }
 }
 
 function decodeBinWithFlexibleSize(
