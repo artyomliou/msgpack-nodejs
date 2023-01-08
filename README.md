@@ -119,29 +119,38 @@ You can register extension, with a number (0 ~ 127) as its type, and a object co
 
 There are 2 optimization strategies:
 
-- [ByteArray](src/encoder/byte-array.ts) starts will a small buffer (1K), when it's not enough, it will create another bigger buffer, and copy into it. To avoid too many copy operation (because it wastes CPU & time), it remember the average of previous encoded size, and adjust size of next allocated buffer.
-- Since the key of JSON object is string, and the object structure usually has pattern, which means most of these keys are cachable. [Encoder](src/encoder/encoder.ts) deploys [LruCache](src/cache.ts) for this. If these keys are too dynamic to cache, this LruCache still could handle this by using a Set() to block any rare keys.
+- For each encoding operation, [ByteArray](src/encoder/byte-array.ts) starts will a small buffer (2K). When it's not enough, it will create another bigger buffer, and copy into it. To avoid too many copying, it will allocate by slightly bigger size than previous allocating.
+- Since the key of JSON object is string, and the object structure usually has pattern, which means most of these keys are cachable. [Encoder](src/encoder/encoder.ts) deploys [LruCache](src/cache.ts) for this. If these keys are too dynamic to cache, this LruCache still could handle this by using a `Set()` to block any rare keys.
 
 ## Decode
 
-There's 2 files handling with different concerns.
+[Decoder](src/decoder/decoder.ts) uses [StructBuilder](src/decoder/struct-builder.ts) to handle every result of [TypedValueResolver](src/decoder/typed-value-resolver.ts).
 
-- [Decoder](src/decoder/decoder.ts) uses [StructBuilder](src/decoder/struct-builder.ts) to handle every result of [TypedValueResolver](src/decoder/typed-value-resolver.ts).
-- [StructBuilder](src/decoder/struct-builder.ts) takes anything as argument. It uses stack to keep track of every array/map in which it is pushing any subsequent value. For every array/map, it it gets every thing it could have, then we will pop previous array/map from stack.
-- [TypedValueResolver](src/decoder/typed-value-resolver.ts) will get the first byte and resolve remaining bytes.
+There are 2 optimization strategies:
+
+- [Pre-allocated array](src/decoder/decoder.ts#L11-L12)
+- [Object/array descriptor caching](src/decoder/typed-value-resolver.ts#L38-L43)
+- [Manually decode UTF-8 when less than 200 characters](src/decoder/typed-value-resolver.ts#L208-L223)
+- [Generator function](src/decoder/typed-value-resolver.ts#L47-L206)
 
 ## Lessons learned
 
-- The difference between [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer), [TypedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray) and the node.js API [Buffer](https://nodejs.org/api/buffer.html)
-- The limitation of JS [left shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift) and [right shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift)
-- [BigInt operators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#operators)
-- The performance benefit of better buffer allocation strategy
-- [Private class features](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_class_fields)
+- Javascript
+  - The difference between [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer), [TypedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray) and the node.js API [Buffer](https://nodejs.org/api/buffer.html)
+  - [BigInt operators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#operators)
+  - The limitation of JS [left shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift) and [right shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift)
+  - [Private class features](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_class_fields)
+  - The performance benefit of better buffer allocation strategy
+  - [Pre-allocated size](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times)
+  - [UTF-8 dncoding/decoding](https://zh.wikipedia.org/zh-tw/UTF-8#UTF-8%E7%9A%84%E7%B7%A8%E7%A2%BC%E6%96%B9%E5%BC%8F)
+- Node.js
+  - [Profiler](https://nodejs.org/en/docs/guides/simple-profiling/)
 - [Typescript](https://www.typescriptlang.org/cheatsheets)
   - Testing - [ts-jest](https://kulshekhar.github.io/ts-jest/docs/guides/esm-support)
   - Linter - [typescript-eslint](https://github.com/typescript-eslint/typescript-eslint) & [lint-staged](https://github.com/okonet/lint-staged)
   - Packaging for ESModule & CommonJS
-- CI & CD - [Github Actions](https://github.com/artyomliou/msgpack-nodejs/actions)
+- CI & CD
+  - [Github Actions](https://github.com/artyomliou/msgpack-nodejs/actions)
 
 ---
 
@@ -158,19 +167,18 @@ There's 2 files handling with different concerns.
 ## Benchmark
 
 By utlizing the great [benchmark tool by msgpack-lite](https://github.com/kawanet/msgpack-lite/blob/master/lib/benchmark.js),
-we can say the encoder (of this project) is fast enough,
-but the decoder is still too slow.
+I think the performance of this project would not be disappointing.
 
 Runs on node.js 16 & R5-5625U.
 
-| operation                                    |      op |   ms |   op/s |
-| -------------------------------------------- | ------: | ---: | -----: |
-| buf = Buffer(JSON.stringify(obj));           | 1017600 | 5000 | 203520 |
-| obj = JSON.parse(buf);                       | 1283400 | 5000 | 256680 |
-| buf = require("msgpack-lite").encode(obj);   |  659700 | 5000 | 131940 |
-| obj = require("msgpack-lite").decode(buf);   |  375900 | 5000 |  75180 |
-| buf = require("msgpack-nodejs").encode(obj); |  572500 | 5000 | 114500 |
-| obj = require("msgpack-nodejs").decode(buf); |  137000 | 5001 |  27394 |
+| operation                                        |      op |   ms |       op/s |
+| ------------------------------------------------ | ------: | ---: | ---------: |
+| buf = Buffer(JSON.stringify(obj));               | 1017300 | 5000 |     203460 |
+| obj = JSON.parse(buf);                           | 1285900 | 5000 |     257180 |
+| buf = require("msgpack-lite").encode(obj);       |  661000 | 5000 |     132200 |
+| obj = require("msgpack-lite").decode(buf);       |  393100 | 5001 |      78604 |
+| **buf = require("msgpack-nodejs").encode(obj);** |  585200 | 5000 | **117040** |
+| **obj = require("msgpack-nodejs").decode(buf);** |  484300 | 5000 |  **96860** |
 
 ## Limitation
 
@@ -180,7 +188,6 @@ Runs on node.js 16 & R5-5625U.
 ## TODO
 
 1. Ext family fully tested
-2. Cache
 
 ---
 

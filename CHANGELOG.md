@@ -1,5 +1,17 @@
 # Versions
 
+## 1.3.5
+
+- refactor(decoder): for better readability & performance
+- feat(decoder): implemented UTF-8 decoding for optimization
+- optimize(encoder): better and simpler allocating strategy
+- optimize: encoder/decoder perf
+
+Again, encoding and decoding [aws-ip-ranges.json](test/dataset/aws-ip-ranges.json).
+
+encoding: 50ms -> 40ms
+decoding: 100ms -> 45ms
+
 ## 1.3.4
 
 - optimize: encoder/decoder perf

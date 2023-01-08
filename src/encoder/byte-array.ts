@@ -1,31 +1,7 @@
 const bufferAllocator = {
-  base: 1024 * 16,
-  multiplier: 1,
-  get size() {
-    return this.base * this.multiplier
-  },
-  incrementMultiplier() {
-    // TODO Limit this
-    this.multiplier++
-  },
-
-  avgSize: 0,
-  prevCount: 0,
-  keepEncodedSize(size: number) {
-    this.avgSize = (this.avgSize * this.prevCount + size) / (this.prevCount + 1)
-    this.prevCount++
-    if (this.prevCount > 10 && this.prevCount % 10 === 0) {
-      this.optimizeByAvg()
-    }
-  },
-  optimizeByAvg() {
-    const newMultiplier = Math.ceil(this.avgSize / this.base)
-    if (this.multiplier > newMultiplier) {
-      this.stat.optimizeShrinked++
-    } else {
-      this.stat.optimizeEnlarged++
-    }
-    this.multiplier = newMultiplier
+  base: 1024 * 2,
+  size(multiplier = 1) {
+    return this.base * multiplier
   },
 
   stat: {
@@ -36,7 +12,9 @@ const bufferAllocator = {
 }
 
 export function bufferAllocatorStat() {
-  return Object.assign({}, bufferAllocator.stat, { size: bufferAllocator.size })
+  return Object.assign({}, bufferAllocator.stat, {
+    size: bufferAllocator.size(),
+  })
 }
 
 /**
@@ -46,31 +24,32 @@ export default class ByteArray {
   #stat = {
     copied: 0,
   }
+  #newBufferMultiplier = 0
   #array: Uint8Array
   #view: DataView
   #pos: number
 
   constructor() {
-    this.#array = new Uint8Array(bufferAllocator.size)
+    this.#array = new Uint8Array(bufferAllocator.size())
     this.#view = new DataView(this.#array.buffer)
     this.#pos = 0
   }
 
   getBuffer(): Uint8Array {
     bufferAllocator.stat.copied += this.#stat.copied
-    bufferAllocator.keepEncodedSize(this.#pos)
     return this.#array.subarray(0, this.#pos)
   }
 
   #ensureEnoughSpace(byteLength: number, cb: CallableFunction): void {
     const reqSize = this.#pos + byteLength
     if (reqSize >= this.#array.byteLength) {
-      while (bufferAllocator.size < reqSize) {
-        bufferAllocator.incrementMultiplier()
+      let newSize = reqSize
+      while (newSize <= reqSize) {
+        newSize += bufferAllocator.size(this.#newBufferMultiplier++) // Incremental
       }
 
       // Create new buffer and copy content from original buffer
-      const newArray = new Uint8Array(bufferAllocator.size)
+      const newArray = new Uint8Array(newSize)
       newArray.set(this.#array)
       this.#view = new DataView(newArray.buffer)
       this.#array = newArray
