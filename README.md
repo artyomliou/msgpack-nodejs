@@ -171,14 +171,25 @@ I think the performance of this project would not be disappointing.
 
 Runs on node.js 16 & R5-5625U.
 
-| operation                                        |      op |   ms |       op/s |
-| ------------------------------------------------ | ------: | ---: | ---------: |
-| buf = Buffer(JSON.stringify(obj));               | 1017300 | 5000 |     203460 |
-| obj = JSON.parse(buf);                           | 1285900 | 5000 |     257180 |
-| buf = require("msgpack-lite").encode(obj);       |  661000 | 5000 |     132200 |
-| obj = require("msgpack-lite").decode(buf);       |  393100 | 5001 |      78604 |
-| **buf = require("msgpack-nodejs").encode(obj);** |  585200 | 5000 | **117040** |
-| **obj = require("msgpack-nodejs").decode(buf);** |  484300 | 5000 |  **96860** |
+| operation                                                 |      op |   ms |   op/s |
+| --------------------------------------------------------- | ------: | ---: | -----: |
+| buf = Buffer(JSON.stringify(obj));                        | 1015100 | 5000 | 203020 |
+| obj = JSON.parse(buf);                                    | 1278000 | 5000 | 255600 |
+| buf = require("msgpack-lite").encode(obj);                |  671400 | 5000 | 134280 |
+| obj = require("msgpack-lite").decode(buf);                |  392800 | 5001 |  78544 |
+| buf = Buffer(require("msgpack.codec").msgpack.pack(obj)); |  698900 | 5000 | 139780 |
+| obj = require("msgpack.codec").msgpack.unpack(buf);       |  391700 | 5000 |  78340 |
+| buf = require("msgpack-js-v5").encode(obj);               |  276800 | 5001 |  55348 |
+| obj = require("msgpack-js-v5").decode(buf);               |  526600 | 5000 | 105320 |
+| buf = require("msgpack-js").encode(obj);                  |  270200 | 5000 |  54040 |
+| obj = require("msgpack-js").decode(buf);                  |  542700 | 5000 | 108540 |
+| buf = require("msgpack5")().encode(obj);                  |  145300 | 5000 |  29060 |
+| obj = require("msgpack5")().decode(buf);                  |  243200 | 5000 |  48640 |
+| buf = require("notepack").encode(obj);                    | 1056300 | 5000 | 211260 |
+| obj = require("notepack").decode(buf);                    |  651900 | 5000 | 130380 |
+| obj = require("msgpack-unpack").decode(buf);              |  161600 | 5001 |  32313 |
+| buf = require("msgpack-nodejs").encode(obj);              |  562700 | 5000 | 112540 |
+| obj = require("msgpack-nodejs").decode(buf);              |  471800 | 5000 |  94360 |
 
 ## Limitation
 
