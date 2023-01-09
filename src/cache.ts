@@ -19,7 +19,7 @@ export class LruCache<K, C = Uint8Array> {
     caches.push(this)
   }
 
-  remember(cb: CallableFunction, key: K): C {
+  remember(key: K, cb: CallableFunction): C {
     let val = this.cache.get(key)
     if (typeof val !== "undefined") {
       // Move to last

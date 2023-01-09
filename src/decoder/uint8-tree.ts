@@ -6,7 +6,7 @@ interface Uint8TreeNode {
   [num: number]: Uint8TreeNode
 }
 
-type RememberCallback = (buf?: Uint8Array) => string
+type RememberCallback = (bytes: Uint8Array) => string
 
 export function remember(buf: Uint8Array, cb: RememberCallback): string {
   let node = root

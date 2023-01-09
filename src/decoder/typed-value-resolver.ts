@@ -216,7 +216,7 @@ function decodeStrWithFlexibleSize(
   const strDataRange = calculateDataRange(pos, sizeByteLength, dataByteLength)
   const buf = buffer.subarray(strDataRange.start, strDataRange.end)
   if (dataByteLength < HOP_LIMIT) {
-    return remember(buf, () => utf8Decode(buf))
+    return remember(buf, utf8Decode)
   } else if (dataByteLength < 200) {
     return utf8Decode(buf)
   } else {

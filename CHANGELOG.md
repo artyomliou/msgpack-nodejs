@@ -3,6 +3,7 @@
 ## Pending
 
 - optimize: use typescript's private class field. [^1]
+- optimize: lower cost of passing cb into LruCache remember()
 - optimize(encoder): exponential buffer allocation
 - optimize(decoder): cache short string(<10) in tree [^2]
 

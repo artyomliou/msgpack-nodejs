@@ -190,9 +190,10 @@ function encodeFloat(byteArray: ByteArray, number: number): void {
   byteArray.writeFloat64(number)
 }
 
-// These 2 variables are created for encodeString()
+// These 3 variables are created for encodeString()
 const textEncoder = new TextEncoder()
-const stringCache = new LruCache<string>(60).noRareKeys()
+const textEncoderEncode = textEncoder.encode.bind(textEncoder)
+const stringCache = new LruCache<string>(60)
 
 function encodeString(
   byteArray: ByteArray,
@@ -200,8 +201,8 @@ function encodeString(
   useCache = false
 ): void {
   const strBuf = useCache
-    ? stringCache.remember(() => textEncoder.encode(string), string)
-    : textEncoder.encode(string)
+    ? stringCache.remember(string, textEncoderEncode)
+    : textEncoderEncode(string)
   const bytesCount = strBuf.byteLength
 
   if (bytesCount <= 31) {
