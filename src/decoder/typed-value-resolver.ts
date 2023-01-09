@@ -34,6 +34,7 @@ import {
 } from "../constants/index.js"
 import { debugMode } from "../constants/debug.js"
 import { utf8Decode } from "./utf8-decode.js"
+import { HOP_LIMIT, remember } from "./uint8-tree.js"
 
 export class ArrayDescriptor {
   constructor(public size: number) {}
@@ -213,12 +214,13 @@ function decodeStrWithFlexibleSize(
   dataByteLength: number
 ): string {
   const strDataRange = calculateDataRange(pos, sizeByteLength, dataByteLength)
-  if (dataByteLength < 200) {
-    return utf8Decode(buffer, strDataRange.start, strDataRange.end)
+  const buf = buffer.subarray(strDataRange.start, strDataRange.end)
+  if (dataByteLength < HOP_LIMIT) {
+    return remember(buf, () => utf8Decode(buf))
+  } else if (dataByteLength < 200) {
+    return utf8Decode(buf)
   } else {
-    return textDecoder.decode(
-      buffer.subarray(strDataRange.start, strDataRange.end)
-    )
+    return textDecoder.decode(buf)
   }
 }
 

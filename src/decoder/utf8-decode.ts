@@ -5,12 +5,9 @@
  */
 export function utf8Decode(
   bytes: Uint8Array,
-  offset?: number,
+  offset = 0,
   end?: number
 ): string {
-  if (!offset) {
-    offset = bytes.byteOffset
-  }
   if (!end) {
     end = bytes.byteLength
   }

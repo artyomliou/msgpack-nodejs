@@ -55,7 +55,7 @@ export default class StructBuilder {
         this.popStack()
       } else {
         if (typeof val !== "string") {
-          throw new Error("Map key should be string.")
+          throw new Error(`Map key should be string, got ${typeof val}.`)
         }
         this.mapKey = val
       }
