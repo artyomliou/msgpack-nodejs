@@ -51,10 +51,10 @@ interface Options {
 export function applyOptions(opt: Options) {
   // apply
   mapKeyCache = opt.useMapKeyCache
-    ? mapKeyCache || new LruCache<string>(60).noRareKeys()
+    ? mapKeyCache || new LruCache<string>(30)
     : undefined
   stringCache = opt.useStringCache
-    ? stringCache || new LruCache<string>(60).noRareKeys()
+    ? stringCache || new LruCache<string>(100).noRareKeys()
     : undefined
 }
 
