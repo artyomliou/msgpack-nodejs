@@ -12,7 +12,6 @@ The purpose behind is learning by doing, which focuses on modern tools/technique
 # Contents
 
 - [Usage](#usage)
-  - [Installation](#installation)
   - [API](#api)
   - [Examples](#examples)
 - [Implementation detail](#implementation-detail)
@@ -30,13 +29,12 @@ The purpose behind is learning by doing, which focuses on modern tools/technique
 
 # Usage
 
-## Installation
-
-```
+```bash
 npm i msgpack-nodejs
-```
 
-You may run `npm test` if you are cloning this project.
+# Optional
+npm test
+```
 
 ## API
 
@@ -131,6 +129,7 @@ There are 2 optimization strategies:
 - [Pre-allocated array](src/decoder/decoder.ts#L11-L12)
 - [Object/array descriptor caching](src/decoder/typed-value-resolver.ts#L38-L43)
 - [Manually decode UTF-8 when less than 200 characters](src/decoder/typed-value-resolver.ts#L208-L223)
+- [Cache short string (targeting map's key) in tree](src/decoder/uint8-tree.ts)
 - [Generator function](src/decoder/typed-value-resolver.ts#L47-L206)
 
 ## Lessons learned
@@ -188,8 +187,8 @@ Runs on node.js 16 & R5-5625U.
 | buf = require("notepack").encode(obj);                    | 1056300 | 5000 | 211260 |
 | obj = require("notepack").decode(buf);                    |  651900 | 5000 | 130380 |
 | obj = require("msgpack-unpack").decode(buf);              |  161600 | 5001 |  32313 |
-| buf = require("msgpack-nodejs").encode(obj);              |  562700 | 5000 | 112540 |
-| obj = require("msgpack-nodejs").decode(buf);              |  471800 | 5000 |  94360 |
+| **buf = require("msgpack-nodejs").encode(obj);**          |  607200 | 5000 | 121440 |
+| **obj = require("msgpack-nodejs").decode(buf);**          |  577500 | 5000 | 115500 |
 
 ## Limitation
 
