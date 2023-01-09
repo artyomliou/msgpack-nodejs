@@ -6,6 +6,7 @@
 - optimize: lower cost of passing cb into LruCache remember()
 - optimize(encoder): exponential buffer allocation
 - optimize(decoder): cache short string(<10) in tree [^2]
+- fix: remove utf8 encoding implementation
 
 [^1]: [The performance of private class fields was bad before Node.js 18](https://v8.dev/blog/faster-class-features), and [private and protected in Typescript are only are only enforced during type checking](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats), so it's possible that this change would bring performance improvement.
 [^2]: [Inserting numeric integer key in object was pretty fast](https://github.com/artyomliou/benchmark-js-object-addition), and uint8 is great candidate. To avoid too many random access bring negative optimization, just cache short string.
