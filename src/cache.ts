@@ -41,7 +41,7 @@ export class LruCache<K, C = Uint8Array> {
       this.rareKeys.delete(key)
 
       // Evict
-      if (this.rareKeys.size >= this.size) {
+      if (this.rareKeys.size >= 200) {
         this.stat.rare += this.rareKeys.size
         this.rareKeys.clear()
       }

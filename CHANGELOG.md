@@ -5,10 +5,16 @@
 - optimize: use typescript's private class field. [^1]
 - optimize: lower cost of passing cb into LruCache remember()
 - optimize(encoder): exponential buffer allocation
+- optimize(encoder): separated cache of map-key & string
 - optimize(decoder): cache short string(<10) in tree [^2]
+- feat: applyOptions()
 - fix: remove utf8 encoding implementation
 
-[^1]: [The performance of private class fields was bad before Node.js 18](https://v8.dev/blog/faster-class-features), and [private and protected in Typescript are only are only enforced during type checking](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats), so it's possible that this change would bring performance improvement.
+Again, encoding and decoding [aws-ip-ranges.json](test/dataset/aws-ip-ranges.json).
+
+encoding: 40ms -> 35ms
+
+[^1]: [The performance of private class fields was bad before Node.js 18](https://v8.dev/blog/faster-class-features), and [private and protected in Typescript are only are only enforced during type checking](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats), so it's possible that this change would bring performance improvement.<br>
 [^2]: [Inserting numeric integer key in object was pretty fast](https://github.com/artyomliou/benchmark-js-object-addition), and uint8 is great candidate. To avoid too many random access bring negative optimization, just cache short string.
 
 ## 1.3.5

@@ -38,8 +38,6 @@ npm test
 
 ## API
 
-There are 4 APIs:
-
 1. [encode()](src/encoder/encoder.ts): `any` => `Uint8Array`
 2. [decode()](src/decoder/decoder.ts): `Uint8Array` => `Exclude<any, Map>`
 3. [EncodeStream class](src/streams/encode-stream.ts): `Exclude<any, null>` => `Buffer`
@@ -47,6 +45,7 @@ There are 4 APIs:
 5. [CustomExtension type](src/extensions/interface.ts): These format helps you to fill out anything `registerExtension()` wants.
 6. [registerExtension()](src/extensions/registry.ts)
 7. [getExtension()](src/extensions/registry.ts): Get extension with type (number) or class constructor (function)
+8. [applyOptions](src/index.ts): Let you control whether to cache string or not
 
 ## Examples
 
@@ -113,24 +112,29 @@ You can register extension, with a number (0 ~ 127) as its type, and a object co
 
 ## Encode
 
-[Encoder](src/encoder/encoder.ts) uses a recursive function `match()` to match JSON structure (primitive value, object, array or nested), and pushes anything encoded into [ByteArray](src/encoder/byte-array.ts).
-
-There are 2 optimization strategies:
-
-- For each encoding operation, [ByteArray](src/encoder/byte-array.ts) starts will a small buffer (2K). When it's not enough, it will create another bigger buffer, and copy into it. To avoid too many copying, it will allocate by slightly bigger size than previous allocating.
-- Since the key of JSON object is string, and the object structure usually has pattern, which means most of these keys are cachable. [Encoder](src/encoder/encoder.ts) deploys [LruCache](src/cache.ts) for this. If these keys are too dynamic to cache, this LruCache still could handle this by using a `Set()` to block any rare keys.
+[Encoder](src/encoder/encoder.ts) uses a recursive function `match()` to match JSON structure (primitive value, object, array or nested), and pushes anything encoded into [ByteArray](src/encoder/byte-array.ts) that responsible for allocating buffer. Encoded string may be cached in [LruCache](src/cache.ts).
 
 ## Decode
 
-[Decoder](src/decoder/decoder.ts) uses [StructBuilder](src/decoder/struct-builder.ts) to handle every result of [TypedValueResolver](src/decoder/typed-value-resolver.ts).
+[Decoder](src/decoder/decoder.ts) uses [StructBuilder](src/decoder/struct-builder.ts) to handle every result of [TypedValueResolver](src/decoder/typed-value-resolver.ts). For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [uint8-tree](src/decoder/uint8-tree.ts).
 
-There are 2 optimization strategies:
+#### Optimization strategies:
 
-- [Pre-allocated array](src/decoder/decoder.ts#L11-L12)
-- [Object/array descriptor caching](src/decoder/typed-value-resolver.ts#L38-L43)
-- [Manually decode UTF-8 when less than 200 characters](src/decoder/typed-value-resolver.ts#L208-L223)
-- [Cache short string (targeting map's key) in tree](src/decoder/uint8-tree.ts)
-- [Generator function](src/decoder/typed-value-resolver.ts#L47-L206)
+Thanks to [AppSpector](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times), this article gives very practical advices.  
+And [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) for better buffer allocation strategy.
+
+- To avoid encoding same string again and again, [LruCache](src/cache.ts) was deployed.
+- To avoid caching rare string and evict it immediately, [LruCache](src/cache.ts) used a `Set()` to filter out rare string.
+- To avoid massive evicting, map-key caching and string caching were separated.
+- To avoid overhead on writing, [ByteArray](src/encoder/byte-array.ts) used `DataView` calls as much as possible.
+- To avoid unnecessary buffer allocation, every [ByteArray](src/encoder/byte-array.ts) begins with small buffer (1K).
+- To quickly respond to unexpectable large size requested by large JSON, [ByteArray](src/encoder/byte-array.ts) allocates exponentially.
+- To avoid syntax penalty of [private class fields](https://v8.dev/blog/faster-class-features) under node.js 18, use [TypeScript's syntax](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats) instead.
+- To maximize performance of array, [pre-allocated array size](src/decoder/decoder.ts#L11-L12).
+- To maximize performance, use [Generator function](src/decoder/typed-value-resolver.ts)
+- To reduce memory usage, cache [Object/array descriptor](src/decoder/typed-value-resolver.ts#L39-L46)
+- To improve decoding peformance, cache Uint8Array in [tree](src/decoder/uint8-tree.ts)
+- To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes.
 
 ## Lessons learned
 
@@ -166,14 +170,14 @@ There are 2 optimization strategies:
 ## Benchmark
 
 By utlizing the great [benchmark tool by msgpack-lite](https://github.com/kawanet/msgpack-lite/blob/master/lib/benchmark.js),
-I think the performance of this project would not be disappointing.
+I thought the performance of this project would not be disappointing.
 
 Runs on node.js 16 & R5-5625U.
 
 | operation                                                 |      op |   ms |   op/s |
 | --------------------------------------------------------- | ------: | ---: | -----: |
-| buf = Buffer(JSON.stringify(obj));                        | 1015100 | 5000 | 203020 |
-| obj = JSON.parse(buf);                                    | 1278000 | 5000 | 255600 |
+| buf = Buffer(JSON.stringify(obj));                        | 1001100 | 5000 | 200220 |
+| obj = JSON.parse(buf);                                    | 1260300 | 5000 | 252060 |
 | buf = require("msgpack-lite").encode(obj);                |  671400 | 5000 | 134280 |
 | obj = require("msgpack-lite").decode(buf);                |  392800 | 5001 |  78544 |
 | buf = Buffer(require("msgpack.codec").msgpack.pack(obj)); |  698900 | 5000 | 139780 |
@@ -184,11 +188,11 @@ Runs on node.js 16 & R5-5625U.
 | obj = require("msgpack-js").decode(buf);                  |  542700 | 5000 | 108540 |
 | buf = require("msgpack5")().encode(obj);                  |  145300 | 5000 |  29060 |
 | obj = require("msgpack5")().decode(buf);                  |  243200 | 5000 |  48640 |
-| buf = require("notepack").encode(obj);                    | 1056300 | 5000 | 211260 |
-| obj = require("notepack").decode(buf);                    |  651900 | 5000 | 130380 |
+| buf = require("notepack").encode(obj);                    | 1104300 | 5000 | 220860 |
+| obj = require("notepack").decode(buf);                    |  670300 | 5000 | 134060 |
 | obj = require("msgpack-unpack").decode(buf);              |  161600 | 5001 |  32313 |
-| **buf = require("msgpack-nodejs").encode(obj);**          |  607200 | 5000 | 121440 |
-| **obj = require("msgpack-nodejs").decode(buf);**          |  577500 | 5000 | 115500 |
+| **buf = require("msgpack-nodejs").encode(obj);**          | 1111100 | 5000 | 222220 |
+| **obj = require("msgpack-nodejs").decode(buf);**          |  612200 | 5000 | 122440 |
 
 ## Limitation
 
@@ -207,5 +211,5 @@ Runs on node.js 16 & R5-5625U.
 - [使用 ESLint, Prettier, Husky, Lint-staged 以及 Commitizen 提升專案品質及一致性](https://medium.com/@danielhu95/set-up-eslint-pipeline-zh-tw-990d7d9eb68e)
 - [samerbuna/efficient-node](https://github.com/samerbuna/efficient-node/blob/main/400-node-streams.adoc)
 - [Best practices for creating a modern npm package](https://snyk.io/blog/best-practices-create-modern-npm-package/)
-- [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) - For better buffer allocation strategy
-- [How to improve MessagePack JavaScript decoder speed by 2.6 times.](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times) - For pre-allocated array
+- [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657)
+- [How to improve MessagePack JavaScript decoder speed by 2.6 times.](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times)

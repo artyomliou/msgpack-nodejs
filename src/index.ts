@@ -1,4 +1,10 @@
-export { default as encode } from "./encoder/encoder.js"
+import { applyOptions } from "./encoder/encoder.js"
+applyOptions({
+  useStringCache: true,
+  useMapKeyCache: true,
+})
+
+export { default as encode, applyOptions } from "./encoder/encoder.js"
 export { default as decode } from "./decoder/decoder.js"
 export { default as EncodeStream } from "./streams/encode-stream.js"
 export { default as DecodeStream } from "./streams/decode-stream.js"

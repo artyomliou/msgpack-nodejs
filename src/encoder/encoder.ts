@@ -38,11 +38,25 @@ import { getExtension } from "../extensions/registry.js"
 import { LruCache } from "../cache.js"
 
 /**
- * Caches
+ * Setting caches
  */
-const stringCache = new LruCache<string>(60)
-const textEncoder = new TextEncoder()
-const textEncoderEncode = textEncoder.encode.bind(textEncoder)
+let mapKeyCache: LruCache<string> | undefined
+let stringCache: LruCache<string> | undefined
+
+interface Options {
+  useMapKeyCache: boolean
+  useStringCache: boolean
+}
+
+export function applyOptions(opt: Options) {
+  // apply
+  mapKeyCache = opt.useMapKeyCache
+    ? mapKeyCache || new LruCache<string>(60).noRareKeys()
+    : undefined
+  stringCache = opt.useStringCache
+    ? stringCache || new LruCache<string>(60).noRareKeys()
+    : undefined
+}
 
 /**
  * Encode as MessagePack format
@@ -112,13 +126,13 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
       if (val instanceof Map) {
         encodeMap(byteArray, val.size)
         for (const [k, v] of val.entries()) {
-          encodeString(byteArray, k, true)
+          encodeMapKey(byteArray, k)
           match(byteArray, v)
         }
       } else {
         encodeMap(byteArray, Object.keys(val).length)
         for (const [k, v] of Object.entries(val)) {
-          encodeString(byteArray, k, true)
+          encodeMapKey(byteArray, k)
           match(byteArray, v)
         }
       }
@@ -178,46 +192,43 @@ function encodeFloat(byteArray: ByteArray, number: number): void {
   byteArray.writeFloat64(number)
 }
 
-function encodeString(
-  byteArray: ByteArray,
-  string: string,
-  useCache = false
-): void {
-  const strBuf = useCache
-    ? stringCache.remember(string, textEncoderEncode)
-    : textEncoderEncode(string)
-  const bytesCount = strBuf.byteLength
+const textEncoder = new TextEncoder()
+function encodeMapKey(byteArray: ByteArray, string: string): void {
+  const buffer = mapKeyCache
+    ? mapKeyCache.remember(string, (str: string) => textEncoder.encode(str))
+    : textEncoder.encode(string)
 
+  writeString(byteArray, buffer)
+}
+
+function encodeString(byteArray: ByteArray, string: string): void {
+  const buffer = stringCache
+    ? stringCache.remember(string, (str: string) => textEncoder.encode(str))
+    : textEncoder.encode(string)
+
+  writeString(byteArray, buffer)
+}
+
+function writeString(byteArray: ByteArray, buffer: Uint8Array) {
+  const bytesCount = buffer.byteLength
   if (bytesCount <= 31) {
     byteArray.writeUint8(0b10100000 + bytesCount)
-    byteArray.append(strBuf)
-    return
-  }
-
-  // (2 ** 8) - 1
-  if (bytesCount < 0xff) {
+    byteArray.append(buffer)
+  } else if (bytesCount < 0xff) {
     byteArray.writeUint8(STR8_PREFIX)
     byteArray.writeUint8(bytesCount)
-    byteArray.append(strBuf)
-    return
-  }
-
-  // (2 ** 16) - 1
-  if (bytesCount < 0xffff) {
+    byteArray.append(buffer)
+  } else if (bytesCount < 0xffff) {
     byteArray.writeUint8(STR16_PREFIX)
     byteArray.writeUint16(bytesCount)
-    byteArray.append(strBuf)
-    return
-  }
-
-  // (2 ** 32) - 1
-  if (bytesCount < 0xffffffff) {
+    byteArray.append(buffer)
+  } else if (bytesCount < 0xffffffff) {
     byteArray.writeUint8(STR32_PREFIX)
     byteArray.writeUint32(bytesCount)
-    byteArray.append(strBuf)
-    return
+    byteArray.append(buffer)
+  } else {
+    throw new Error("String's length cannot exceed (2^32)-1.")
   }
-  throw new Error("String's length cannot exceed (2^32)-1.")
 }
 
 function encodeBuffer(byteArray: ByteArray, buffer: Uint8Array): void {
