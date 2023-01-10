@@ -1,5 +1,11 @@
+import { Options } from "../options.js"
+
+export function optIn(opt: Options) {
+  bufferAllocator.base = opt?.encoder?.byteArray?.base || 1024
+}
+
 const bufferAllocator = {
-  base: 1024 * 1,
+  base: 1024,
   size(exponent = 0) {
     const val = this.base * 2 ** exponent
     if (val > this.stat.highestSize) {

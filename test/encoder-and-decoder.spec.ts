@@ -1,7 +1,5 @@
 import { decode, encode } from "../src/index.js"
 import assert from "assert"
-import { cacheStatistic } from "../src/cache.js"
-import { bufferAllocatorStat } from "../src/encoder/byte-array.js"
 
 /**
  * Optimized way to create object with many keys
@@ -250,8 +248,6 @@ describe("Encoder/Decoder integration test", () => {
       for (const [map, obj] of values) {
         assert.deepStrictEqual(decode(encode(map)), obj)
       }
-      console.log(cacheStatistic())
-      console.log(bufferAllocatorStat())
     })
   })
 })

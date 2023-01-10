@@ -36,25 +36,21 @@ import { debugMode } from "../constants/debug.js"
 import { EncodableValue } from "../types.js"
 import { getExtension } from "../extensions/registry.js"
 import { LruCache } from "../cache.js"
+import { Options } from "../options.js"
 
 /**
- * Setting caches
+ * Opt in caches
  */
 let mapKeyCache: LruCache<string> | undefined
 let stringCache: LruCache<string> | undefined
 
-interface Options {
-  useMapKeyCache: boolean
-  useStringCache: boolean
-}
-
-export function applyOptions(opt: Options) {
-  // apply
-  mapKeyCache = opt.useMapKeyCache
-    ? mapKeyCache || new LruCache<string>(30)
+export function optIn(opt: Options) {
+  mapKeyCache = opt?.encoder?.mapKeyCache?.enabled
+    ? mapKeyCache || new LruCache<string>(opt?.encoder?.mapKeyCache?.size || 30)
     : undefined
-  stringCache = opt.useStringCache
-    ? stringCache || new LruCache<string>(100).noRareKeys()
+  stringCache = opt?.encoder?.stringCache?.enabled
+    ? stringCache ||
+      new LruCache<string>(opt?.encoder?.stringCache?.size || 100).noRareKeys()
     : undefined
 }
 

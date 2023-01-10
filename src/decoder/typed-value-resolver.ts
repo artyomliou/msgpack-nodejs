@@ -34,15 +34,45 @@ import {
 } from "../constants/index.js"
 import { debugMode } from "../constants/debug.js"
 import { utf8Decode } from "./utf8-decode.js"
-import { HOP_LIMIT, remember } from "./uint8-tree.js"
+import { remember } from "./uint8-tree.js"
+import { Options } from "../options.js"
 
+/**
+ * Opt in uint8-tree cache
+ */
+let shortStringCacheEnabled = true
+let shortStringCacheLessThan = 10
+let jsUtf8DecodeEnabled = true
+let jsUtf8DecodeLessThan = 200
+export function optIn(opt: Options) {
+  shortStringCacheEnabled = opt?.decoder?.shortStringCache?.enabled || true
+  shortStringCacheLessThan = opt?.decoder?.shortStringCache?.lessThan || 10
+  jsUtf8DecodeEnabled = opt?.decoder?.jsUtf8Decode?.enabled || true
+  jsUtf8DecodeLessThan = opt?.decoder?.jsUtf8Decode?.lessThan || 200
+}
+
+/**
+ * Describe size of array
+ */
 export class ArrayDescriptor {
   constructor(public size: number) {}
 }
+
+/**
+ * Describe size of object
+ */
 export class ObjectDescriptor {
   constructor(public size: number) {}
 }
+
+/**
+ * Caching ArrayDescriptor
+ */
 const arrayDescPool: Record<number, ArrayDescriptor> = {}
+
+/**
+ * Caching ObjectDescriptor
+ */
 const objDescPool: Record<number, ObjectDescriptor> = {}
 
 export default function* parseBuffer(buffer: Uint8Array) {
@@ -215,9 +245,9 @@ function decodeStrWithFlexibleSize(
 ): string {
   const strDataRange = calculateDataRange(pos, sizeByteLength, dataByteLength)
   const buf = buffer.subarray(strDataRange.start, strDataRange.end)
-  if (dataByteLength < HOP_LIMIT) {
+  if (shortStringCacheEnabled && dataByteLength < shortStringCacheLessThan) {
     return remember(buf, utf8Decode)
-  } else if (dataByteLength < 200) {
+  } else if (jsUtf8DecodeEnabled && dataByteLength < jsUtf8DecodeLessThan) {
     return utf8Decode(buf)
   } else {
     return textDecoder.decode(buf)

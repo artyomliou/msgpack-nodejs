@@ -2,6 +2,10 @@
 
 ## Pending
 
+- feat: more available options
+
+## 1.3.6
+
 - optimize: use typescript's private class field. [^1]
 - optimize: lower cost of passing cb into LruCache remember()
 - optimize(encoder): exponential buffer allocation

@@ -42,8 +42,8 @@ npm test
 2. [decode()](src/decoder/decoder.ts): `Uint8Array` => `Exclude<any, Map>`
 3. [EncodeStream class](src/streams/encode-stream.ts): `Exclude<any, null>` => `Buffer`
 4. [DecodeStream class](src/streams/decode-stream.ts): `Buffer` => `Exclude<any, null>` <br> _Sometimes you may encounter error after you attached another stream that does not expect a object as its input._
-5. [CustomExtension type](src/extensions/interface.ts): These format helps you to fill out anything `registerExtension()` wants.
-6. [registerExtension()](src/extensions/registry.ts)
+5. [registerExtension()](src/extensions/registry.ts)
+6. [CustomExtension type](src/extensions/interface.ts)
 7. [getExtension()](src/extensions/registry.ts): Get extension with type (number) or class constructor (function)
 8. [applyOptions](src/index.ts): Let you control whether to cache string or not
 
@@ -116,7 +116,7 @@ You can register extension, with a number (0 ~ 127) as its type, and a object co
 
 ## Decode
 
-[Decoder](src/decoder/decoder.ts) uses [StructBuilder](src/decoder/struct-builder.ts) to handle every result of [TypedValueResolver](src/decoder/typed-value-resolver.ts). For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [uint8-tree](src/decoder/uint8-tree.ts).
+[Decoder](src/decoder/decoder.ts) uses [TypedValueResolver](src/decoder/typed-value-resolver.ts) to read every value out, and push them into [StructBuilder](src/decoder/struct-builder.ts) to rebuild whole JSON object. For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [uint8-tree](src/decoder/uint8-tree.ts).
 
 #### Optimization strategies:
 

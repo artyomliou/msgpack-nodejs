@@ -1,6 +1,6 @@
 const caches: LruCache<unknown, unknown>[] = []
 
-export function cacheStatistic() {
+export function lruCacheStat() {
   return caches.map((c) => c.stat)
 }
 
