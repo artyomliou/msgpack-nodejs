@@ -6,24 +6,25 @@ export function optIn(opt: Options) {
   }
 }
 
+export function bufferAllocatorStat() {
+  return stat
+}
+
+const stat = {
+  copied: 0,
+  maxAllocatedSize: 0,
+  maxOutputSize: 0,
+}
+
 const bufferAllocator = {
   base: 1024,
   size(exponent = 0) {
     const val = this.base * 2 ** exponent
-    if (val > this.stat.highestSize) {
-      this.stat.highestSize = val
+    if (val > stat.maxAllocatedSize) {
+      stat.maxAllocatedSize = val
     }
     return val
   },
-
-  stat: {
-    copied: 0,
-    highestSize: 0,
-  },
-}
-
-export function bufferAllocatorStat() {
-  return bufferAllocator.stat
 }
 
 /**
@@ -42,6 +43,9 @@ export default class ByteArray {
   }
 
   getBuffer(): Uint8Array {
+    if (this.pos > stat.maxOutputSize) {
+      stat.maxOutputSize = this.pos
+    }
     return this.array.subarray(0, this.pos)
   }
 
@@ -60,7 +64,7 @@ export default class ByteArray {
       this.array = newArray
 
       // Increment stat
-      bufferAllocator.stat.copied++
+      stat.copied++
     }
 
     cb()
