@@ -45,10 +45,21 @@ let shortStringCacheLessThan = 10
 let jsUtf8DecodeEnabled = true
 let jsUtf8DecodeLessThan = 200
 export function optIn(opt: Options) {
-  shortStringCacheEnabled = opt?.decoder?.shortStringCache?.enabled || true
-  shortStringCacheLessThan = opt?.decoder?.shortStringCache?.lessThan || 10
-  jsUtf8DecodeEnabled = opt?.decoder?.jsUtf8Decode?.enabled || true
-  jsUtf8DecodeLessThan = opt?.decoder?.jsUtf8Decode?.lessThan || 200
+  // shortStringCache
+  if (typeof opt?.decoder?.shortStringCache?.enabled !== "undefined") {
+    shortStringCacheEnabled = opt.decoder.shortStringCache.enabled
+  }
+  if (typeof opt?.decoder?.shortStringCache?.lessThan !== "undefined") {
+    shortStringCacheLessThan = opt.decoder.shortStringCache.lessThan
+  }
+
+  // jsUtf8Decode
+  if (typeof opt?.decoder?.jsUtf8Decode?.enabled !== "undefined") {
+    jsUtf8DecodeEnabled = opt.decoder.jsUtf8Decode.enabled
+  }
+  if (typeof opt?.decoder?.jsUtf8Decode?.lessThan !== "undefined") {
+    jsUtf8DecodeLessThan = opt.decoder.jsUtf8Decode.lessThan
+  }
 }
 
 /**

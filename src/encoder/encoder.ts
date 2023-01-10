@@ -41,17 +41,27 @@ import { Options } from "../options.js"
 /**
  * Opt in caches
  */
-let mapKeyCache: LruCache<string> | undefined
-let stringCache: LruCache<string> | undefined
+const mapKeyCache = new LruCache<string>(30)
+const stringCache = new LruCache<string>(100).noRareKeys()
+let mapkeyCacheEnabled = true
+let stringCacheEnabled = true
 
 export function optIn(opt: Options) {
-  mapKeyCache = opt?.encoder?.mapKeyCache?.enabled
-    ? mapKeyCache || new LruCache<string>(opt?.encoder?.mapKeyCache?.size || 30)
-    : undefined
-  stringCache = opt?.encoder?.stringCache?.enabled
-    ? stringCache ||
-      new LruCache<string>(opt?.encoder?.stringCache?.size || 100).noRareKeys()
-    : undefined
+  // mapkeyCache
+  if (typeof opt?.encoder?.mapKeyCache?.enabled !== "undefined") {
+    mapkeyCacheEnabled = opt.encoder.mapKeyCache.enabled
+  }
+  if (typeof opt?.encoder?.mapKeyCache?.size !== "undefined") {
+    mapKeyCache.size = opt.encoder.mapKeyCache.size
+  }
+
+  // stringCache
+  if (typeof opt?.encoder?.stringCache?.enabled !== "undefined") {
+    stringCacheEnabled = opt.encoder.stringCache.enabled
+  }
+  if (typeof opt?.encoder?.stringCache?.size !== "undefined") {
+    stringCache.size = opt.encoder.stringCache.size
+  }
 }
 
 /**
@@ -190,7 +200,7 @@ function encodeFloat(byteArray: ByteArray, number: number): void {
 
 const textEncoder = new TextEncoder()
 function encodeMapKey(byteArray: ByteArray, string: string): void {
-  const buffer = mapKeyCache
+  const buffer = mapkeyCacheEnabled
     ? mapKeyCache.remember(string, (str: string) => textEncoder.encode(str))
     : textEncoder.encode(string)
 
@@ -198,7 +208,7 @@ function encodeMapKey(byteArray: ByteArray, string: string): void {
 }
 
 function encodeString(byteArray: ByteArray, string: string): void {
-  const buffer = stringCache
+  const buffer = stringCacheEnabled
     ? stringCache.remember(string, (str: string) => textEncoder.encode(str))
     : textEncoder.encode(string)
 

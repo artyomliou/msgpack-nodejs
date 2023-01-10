@@ -1,7 +1,9 @@
 import { Options } from "../options.js"
 
 export function optIn(opt: Options) {
-  bufferAllocator.base = opt?.encoder?.byteArray?.base || 1024
+  if (typeof opt?.encoder?.byteArray?.base !== "undefined") {
+    bufferAllocator.base = opt.encoder.byteArray.base
+  }
 }
 
 const bufferAllocator = {
