@@ -215,3 +215,4 @@ Runs on node.js 16 & R5-5625U.
 - [How to improve MessagePack JavaScript decoder speed by 2.6 times.](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times)
 - [How To Use Multithreading in Node.js](https://www.digitalocean.com/community/tutorials/how-to-use-multithreading-in-node-js)
 - [Node.js TypeScript #12. Introduction to Worker Threads with TypeScript](https://wanago.io/2019/05/06/node-js-typescript-12-worker-threads/)
+- [Benchmark: Node.js v10-v14+ Worker Threads are slow to communicate with, but keep the main loop responsive](https://www.jakso.me/blog/nodejs-14-worker-threads-benchmarks)

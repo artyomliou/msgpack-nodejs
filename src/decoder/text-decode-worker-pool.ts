@@ -6,26 +6,28 @@ import { Worker } from "node:worker_threads"
 /**
  * Definitions for typescript
  */
-type Task = {
-  task: Uint8Array[]
-  callback: Callback
+type NodeWorker<Output> = Worker & {
+  [index: symbol]: WorkerPoolTaskInfo<Output> | null
 }
-type Callback = (err: Error | null, result: string[] | null) => void
-type NodeWorker = Worker & {
-  [index: symbol]: WorkerPoolTaskInfo | null
-}
+type Callback<Output> = (err: Error | null, result: Output | null) => void
 
 /**
  * WorkerPool
  */
-export default class WorkerPool extends EventEmitter {
+export default class WorkerPool<
+  Input = ArrayBuffer[],
+  Output = string[]
+> extends EventEmitter {
   workerPathname: string
   numThreads: number
-  workers: NodeWorker[]
-  freeWorkers: NodeWorker[]
+  workers: NodeWorker<Output>[]
+  freeWorkers: NodeWorker<Output>[]
 
   /** Task queue */
-  tasks: Task[]
+  tasks: Array<{
+    task: Input
+    callback: Callback<Output>
+  }>
 
   constructor(workerPathname: string, numThreads: number) {
     super()
@@ -47,9 +49,9 @@ export default class WorkerPool extends EventEmitter {
     })
   }
 
-  addNewWorker() {
-    const worker = new Worker(this.workerPathname) as NodeWorker
-    worker.on("message", (result: string) => {
+  private addNewWorker() {
+    const worker = new Worker(this.workerPathname) as NodeWorker<Output>
+    worker.on("message", (result: Output) => {
       // In case of success: Call the callback that was passed to `runTask`,
       // remove the `TaskInfo` associated with the Worker, and mark it as free
       // again.
@@ -73,7 +75,7 @@ export default class WorkerPool extends EventEmitter {
     this.emit(kWorkerFreedEvent)
   }
 
-  runTask(task: Uint8Array[], callback: Callback) {
+  runTask(task: Input, callback: Callback<Output>) {
     if (this.freeWorkers.length === 0) {
       // No free threads, wait until a worker thread becomes free.
       this.tasks.push({ task, callback })
@@ -81,7 +83,7 @@ export default class WorkerPool extends EventEmitter {
     }
 
     const worker = this.freeWorkers.pop()!
-    worker[kTaskInfo] = new WorkerPoolTaskInfo(callback)
+    worker[kTaskInfo] = new WorkerPoolTaskInfo<Output>(callback)
     worker.postMessage(task)
   }
 
@@ -96,13 +98,13 @@ export default class WorkerPool extends EventEmitter {
 const kTaskInfo = Symbol("kTaskInfo")
 const kWorkerFreedEvent = Symbol("kWorkerFreedEvent")
 
-class WorkerPoolTaskInfo extends AsyncResource {
-  constructor(public callback: Callback) {
+class WorkerPoolTaskInfo<Output> extends AsyncResource {
+  constructor(public callback: Callback<Output>) {
     super("WorkerPoolTaskInfo")
     this.callback = callback
   }
 
-  done(err: Error | null, result: string | null) {
+  done(err: Error | null, result: Output | null) {
     this.runInAsyncScope(this.callback, null, err, result)
     this.emitDestroy() // `TaskInfo`s are used only once.
   }

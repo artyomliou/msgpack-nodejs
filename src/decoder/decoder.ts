@@ -9,7 +9,6 @@ import StructBuilder from "./struct-builder.js"
 import WorkerPool from "./text-decode-worker-pool.js"
 import { textDecode } from "./text-decode.js"
 import { resolve } from "path"
-import { resourceLimits } from "worker_threads"
 
 export default function msgPackDecode(buffer: Uint8Array): DecodeOutput {
   console.time("decode as tree")
@@ -83,8 +82,8 @@ function decodeBinaryAsTree(buffer: Uint8Array): [AllNode, StringNode[]] {
 }
 
 async function decodeAllStringNodeNoFind(nodes: StringNode[]) {
-  const chunkSize = 1000
-  const workerCount = 8
+  const workerCount = 5
+  const chunkSize = Math.ceil(nodes.length / workerCount)
 
   // Prepare worker for text-decoding
   console.time("create workers")
@@ -94,31 +93,23 @@ async function decodeAllStringNodeNoFind(nodes: StringNode[]) {
   )
   console.timeEnd("create workers")
 
+  console.time("schedule all tasks")
   let promises = []
-  function newTaskPromise(chunk: StringNode[]): Promise<string[]> {
-    return new Promise<string[]>((resolve, reject) => {
+  for (let i = 0; i < nodes.length; i += chunkSize) {
+    const promise = new Promise<void>((resolve, reject) => {
       pool.runTask(
-        chunk.map((node) => node.buf),
+        nodes.slice(i, i + chunkSize).map((node) => node.buf.slice().buffer),
         (err, result) => {
           if (result) {
-            resolve(result)
+            for (let j = 0; j < result.length; j++) {
+              nodes[i + j].val = result[j]
+            }
+            resolve()
           } else if (err) {
             reject(err)
-          } else {
-            throw new Error("Worker should return decoded text.")
           }
         }
       )
-    })
-  }
-
-  console.time("schedule all tasks")
-  for (let i = 0; i < nodes.length; i += chunkSize) {
-    const chunk = nodes.slice(i, i + chunkSize)
-    const promise = newTaskPromise(chunk).then((strings) => {
-      for (let j = 0; j < strings.length; j++) {
-        nodes[i + j].val = strings[j]
-      }
     })
     promises.push(promise)
   }

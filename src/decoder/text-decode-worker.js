@@ -1,25 +1,28 @@
-// const path = require("path")
-// require("ts-node").register()
-// require(path.resolve(__dirname, "./text-decode-worker.ts"))
-
 const { parentPort, threadId } = require("worker_threads")
-
 if (parentPort === null) {
   throw new Error("This file should be runned as Worker().")
 }
-
 console.debug(`Worker (${threadId}) created.`)
 
-const decoder = new TextDecoder()
 parentPort.on("message", (task) => {
-  const output = []
-  for (let i = 0; i < task.length; i++) {
-    output.push(
-      task[i].byteLength < 200 ? utf8Decode(task[i]) : decoder.decode(task[i])
-    )
-  }
+  const output = task.map((buffer) => textDecode(new Uint8Array(buffer)))
   parentPort.postMessage(output)
 })
+
+const textDecoder = new TextDecoder()
+
+/**
+ * Optimized text decoding function
+ * @param {Uint8Array} buf
+ * @returns {string}
+ */
+function textDecode(buf) {
+  if (buf.byteLength < 200) {
+    return utf8Decode(buf)
+  } else {
+    return textDecoder.decode(buf)
+  }
+}
 
 /**
  * My UTF-8 decoding implementation

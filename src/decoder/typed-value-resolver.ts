@@ -332,7 +332,7 @@ export class StringNode {
     dataByte: number
   ) {
     const { start, end } = calculateDataRange(pos, sizeByte, dataByte)
-    return new StringNode(buf.slice(start, end))
+    return new StringNode(buf.subarray(start, end))
   }
 }
 
