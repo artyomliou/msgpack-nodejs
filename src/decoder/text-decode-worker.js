@@ -1,12 +1,37 @@
+// const path = require("path")
+// require("ts-node").register()
+// require(path.resolve(__dirname, "./text-decode-worker.ts"))
+
+const { parentPort, threadId } = require("worker_threads")
+
+if (parentPort === null) {
+  throw new Error("This file should be runned as Worker().")
+}
+
+console.debug(`Worker (${threadId}) created.`)
+
+const decoder = new TextDecoder()
+parentPort.on("message", (task) => {
+  const output = []
+  for (let i = 0; i < task.length; i++) {
+    output.push(
+      task[i].byteLength < 200 ? utf8Decode(task[i]) : decoder.decode(task[i])
+    )
+  }
+  parentPort.postMessage(output)
+})
+
 /**
  * My UTF-8 decoding implementation
  * Inspired by https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times
  * Follow instruction by https://zh.wikipedia.org/wiki/UTF-8#UTF-8%E7%9A%84%E7%B7%A8%E7%A2%BC%E6%96%B9%E5%BC%8F
+ * @param {Uint8Array} bytes
+ * @returns {string}
  */
-export function utf8Decode(bytes: Uint8Array): string {
+function utf8Decode(bytes) {
   let offset = 0
   const end = bytes.byteLength
-  const out: Array<number> = []
+  const out = []
   while (offset < end) {
     const firstByte = bytes[offset++]
     if ((firstByte & 0b10000000) === 0) {

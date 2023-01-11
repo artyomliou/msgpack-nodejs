@@ -1,5 +1,18 @@
 # Versions
 
+## Pending (Worker thread)
+
+- refactor(decoder): try multi-threads on text decoding
+
+Decoder's full steps now includes as follows:
+
+1. Parse buffer to tree
+2. Return the root if root is not a MapNode/ArrayNode
+3. StringNode decoding
+4. If use asynchronous decode function, then all StringNode will be decoded in [worker_threads](https://nodejs.org/api/worker_threads.html)
+5. If use synchronous decode function, then all StringNode will be decoded in main thread
+6. Transform the tree into JS primitive (object/array)
+
 ## Pending
 
 - feat: more available options

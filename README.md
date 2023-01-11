@@ -213,3 +213,5 @@ Runs on node.js 16 & R5-5625U.
 - [Best practices for creating a modern npm package](https://snyk.io/blog/best-practices-create-modern-npm-package/)
 - [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657)
 - [How to improve MessagePack JavaScript decoder speed by 2.6 times.](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times)
+- [How To Use Multithreading in Node.js](https://www.digitalocean.com/community/tutorials/how-to-use-multithreading-in-node-js)
+- [Node.js TypeScript #12. Introduction to Worker Threads with TypeScript](https://wanago.io/2019/05/06/node-js-typescript-12-worker-threads/)

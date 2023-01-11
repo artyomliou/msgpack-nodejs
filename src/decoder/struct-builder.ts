@@ -1,63 +1,65 @@
-import { DecodeOutput } from "src/types"
-
-type Struct = Array<unknown> | Record<string, unknown>
-type MapKey = string | null
+import {
+  AllNode,
+  ArrayNode,
+  MapNode,
+  StringNode,
+} from "./typed-value-resolver.js"
 
 export default class StructBuilder {
-  public struct!: Struct
-  private elementsLeft = 0
-  private stack: Array<[Struct, number, MapKey]> = []
-  private mapKey: MapKey = null
+  public struct!: ArrayNode | MapNode
+  private stack: Array<[ArrayNode | MapNode, StringNode | null]> = []
+  private mapKey: StringNode | null = null
 
   /**
    * Insert new struct in current struct, then replace reference
    */
-  newStruct(val: Struct, size = 0) {
-    this.insertValue(val)
+  newStruct(node: ArrayNode | MapNode) {
+    this.insertValue(node)
 
     // Optimize: We dont have to push and pop this empty struct
-    if (this.struct && size === 0) {
+    if (this.struct && node.size === 0) {
       return
     }
 
     // Save current reference into stack
     if (this.struct) {
-      this.stack.push([this.struct, this.elementsLeft, this.mapKey])
+      this.stack.push([this.struct, this.mapKey])
     }
 
     // Replace reference
-    if (val instanceof Array) {
-      this.elementsLeft = size
-      this.struct = val
-      this.mapKey = null
-    } else if (val) {
-      this.elementsLeft = size
-      this.struct = val as Record<string | symbol, unknown>
-      this.mapKey = null
-    }
+    this.struct = node
+    this.mapKey = null
   }
 
   /**
    * Insert any value into current struct
    */
-  insertValue(val: DecodeOutput): boolean {
+  insertValue(node: AllNode): boolean {
     if (!this.struct) {
       return false
-    } else if (this.struct instanceof Array) {
-      this.struct[this.struct.length - this.elementsLeft] = val
-      this.elementsLeft--
-      this.popStack()
-    } else {
-      if (this.mapKey) {
-        this.struct[this.mapKey] = val
-        this.mapKey = null
-        this.elementsLeft--
+    } else if (this.struct instanceof ArrayNode) {
+      this.struct.elements[this.struct.size - this.struct.elementsLeft] = node
+      this.struct.elementsLeft--
+      if (this.struct.elementsLeft === 0) {
         this.popStack()
-      } else {
-        if (typeof val !== "string") {
-          throw new Error(`Map key should be string, got ${typeof val}.`)
+      }
+    } else if (this.struct instanceof MapNode) {
+      if (!this.mapKey) {
+        if (!(node instanceof StringNode)) {
+          console.debug(this.struct)
+          throw new Error(`Map key should be StringNode, got ${typeof node}.`)
         }
-        this.mapKey = val
+        this.mapKey = node
+        return true
+      }
+
+      this.struct.elements[this.struct.size - this.struct.elementsLeft] =
+        this.mapKey
+      this.mapKey.next = node
+      this.mapKey = null
+      this.struct.elementsLeft--
+      if (this.struct.elementsLeft === 0) {
+        this.popStack()
       }
     }
     return true
@@ -67,11 +69,10 @@ export default class StructBuilder {
    * If a struct got all elements it could have, leave current context
    */
   private popStack() {
-    while (this.elementsLeft === 0 && this.stack.length > 0) {
-      const parent = this.stack.pop() as [Struct, number, MapKey]
+    while (this.struct.elementsLeft === 0 && this.stack.length > 0) {
+      const parent = this.stack.pop() as [ArrayNode | MapNode, StringNode]
       this.struct = parent[0]
-      this.elementsLeft = parent[1]
-      this.mapKey = parent[2]
+      this.mapKey = parent[1]
     }
   }
 }

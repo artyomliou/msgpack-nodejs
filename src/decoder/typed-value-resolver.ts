@@ -33,7 +33,6 @@ import {
   MAP32_PREFIX,
 } from "../constants/index.js"
 import { debugMode } from "../constants/debug.js"
-import { utf8Decode } from "./utf8-decode.js"
 import { remember } from "./uint8-tree.js"
 import { Options } from "../options.js"
 
@@ -62,29 +61,29 @@ export function optIn(opt: Options) {
   }
 }
 
-/**
- * Describe size of array
- */
-export class ArrayDescriptor {
-  constructor(public size: number) {}
-}
+// /**
+//  * Describe size of array
+//  */
+// export class ArrayDescriptor {
+//   constructor(public size: number) {}
+// }
 
-/**
- * Describe size of object
- */
-export class ObjectDescriptor {
-  constructor(public size: number) {}
-}
+// /**
+//  * Describe size of object
+//  */
+// export class ObjectDescriptor {
+//   constructor(public size: number) {}
+// }
 
-/**
- * Caching ArrayDescriptor
- */
-const arrayDescPool: Record<number, ArrayDescriptor> = {}
+// /**
+//  * Caching ArrayDescriptor
+//  */
+// const arrayDescPool: Record<number, ArrayDescriptor> = {}
 
-/**
- * Caching ObjectDescriptor
- */
-const objDescPool: Record<number, ObjectDescriptor> = {}
+// /**
+//  * Caching ObjectDescriptor
+//  */
+// const objDescPool: Record<number, ObjectDescriptor> = {}
 
 export default function* parseBuffer(buffer: Uint8Array) {
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
@@ -95,6 +94,7 @@ export default function* parseBuffer(buffer: Uint8Array) {
   }
 
   let pos = 0
+  let stringNodes: Array<StringNode> = []
   while (pos < view.byteLength) {
     // Get first byte & move pointer for resolving value
     const firstByte = view.getUint8(pos)
@@ -103,141 +103,179 @@ export default function* parseBuffer(buffer: Uint8Array) {
     if (firstByte >= 0xa0 && firstByte <= 0xbf) {
       const sizeByte = 0
       const dataByte = firstByte - 0xa0
-      yield decodeStrWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      const node = StringNode.fromRangeSlice(buffer, pos, sizeByte, dataByte)
+      yield node
+      stringNodes.push(node)
       pos += sizeByte + dataByte
     } else if (firstByte === STR8_PREFIX) {
       const sizeByte = 1
       const dataByte = view.getUint8(pos)
-      yield decodeStrWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      const node = StringNode.fromRangeSlice(buffer, pos, sizeByte, dataByte)
+      yield node
+      stringNodes.push(node)
       pos += sizeByte + dataByte
     } else if (firstByte === STR16_PREFIX) {
       const sizeByte = 2
       const dataByte = view.getUint16(pos, false)
-      yield decodeStrWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      const node = StringNode.fromRangeSlice(buffer, pos, sizeByte, dataByte)
+      yield node
+      stringNodes.push(node)
       pos += sizeByte + dataByte
     } else if (firstByte === STR32_PREFIX) {
       const sizeByte = 4
       const dataByte = view.getUint32(pos, false)
-      yield decodeStrWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      const node = StringNode.fromRangeSlice(buffer, pos, sizeByte, dataByte)
+      yield node
+      stringNodes.push(node)
       pos += sizeByte + dataByte
     } else if (firstByte >= 0x00 && firstByte <= 0x7f) {
-      yield view.getUint8(pos - 1)
+      yield new ValueNode(firstByte)
     } else if (firstByte >= 0xe0 && firstByte <= 0xff) {
-      yield view.getInt8(pos - 1)
+      yield new ValueNode(view.getInt8(pos - 1))
     } else if (firstByte >= 0x90 && firstByte <= 0x9f) {
-      const size = firstByte - 0b10010000
-      yield size in arrayDescPool
-        ? arrayDescPool[size]
-        : (arrayDescPool[size] = new ArrayDescriptor(size))
+      const elementsLeft = firstByte - 0b10010000
+      yield new ArrayNode(elementsLeft)
     } else if (firstByte === ARRAY16_PREFIX) {
-      const size = view.getUint16(pos, false)
-      yield size in arrayDescPool
-        ? arrayDescPool[size]
-        : (arrayDescPool[size] = new ArrayDescriptor(size))
+      const elementsLeft = view.getUint16(pos, false)
+      yield new ArrayNode(elementsLeft)
       pos += 2
     } else if (firstByte === ARRAY32_PREFIX) {
-      const size = view.getUint32(pos, false)
-      yield size in arrayDescPool
-        ? arrayDescPool[size]
-        : (arrayDescPool[size] = new ArrayDescriptor(size))
+      const elementsLeft = view.getUint32(pos, false)
+      yield new ArrayNode(elementsLeft)
       pos += 4
     } else if (firstByte >= 0x80 && firstByte <= 0x8f) {
-      const size = firstByte - 0x80
-      yield size in objDescPool
-        ? objDescPool[size]
-        : (objDescPool[size] = new ObjectDescriptor(size))
+      const elementsLeft = firstByte - 0x80
+      yield new MapNode(elementsLeft)
     } else if (firstByte === MAP16_PREFIX) {
-      const size = view.getUint16(pos, false)
-      yield size in objDescPool
-        ? objDescPool[size]
-        : (objDescPool[size] = new ObjectDescriptor(size))
+      const elementsLeft = view.getUint16(pos, false)
+      yield new MapNode(elementsLeft)
       pos += 2
     } else if (firstByte === MAP32_PREFIX) {
-      const size = view.getUint32(pos, false)
-      yield size in objDescPool
-        ? objDescPool[size]
-        : (objDescPool[size] = new ObjectDescriptor(size))
+      const elementsLeft = view.getUint32(pos, false)
+      yield new MapNode(elementsLeft)
       pos += 4
     } else if (firstByte === UINT8_PREFIX) {
-      yield view.getUint8(pos)
+      const val = view.getUint8(pos)
+      yield new ValueNode(val)
       pos += 1
     } else if (firstByte === UINT16_PREFIX) {
-      yield view.getUint16(pos, false)
+      const val = view.getUint16(pos, false)
+      yield new ValueNode(val)
       pos += 2
     } else if (firstByte === UINT32_PREFIX) {
-      yield view.getUint32(pos, false)
+      const val = view.getUint32(pos, false)
+      yield new ValueNode(val)
       pos += 4
     } else if (firstByte === UINT64_PREFIX) {
-      yield view.getBigUint64(pos, false)
+      const val = view.getBigUint64(pos, false)
+      yield new ValueNode(val)
       pos += 8
     } else if (firstByte === INT8_PREFIX) {
-      yield view.getInt8(pos)
+      const val = view.getInt8(pos)
+      yield new ValueNode(val)
       pos += 1
     } else if (firstByte === INT16_PREFIX) {
-      yield view.getInt16(pos, false)
+      const val = view.getInt16(pos, false)
+      yield new ValueNode(val)
       pos += 2
     } else if (firstByte === INT32_PREFIX) {
-      yield view.getInt32(pos, false)
+      const val = view.getInt32(pos, false)
+      yield new ValueNode(val)
       pos += 4
     } else if (firstByte === INT64_PREFIX) {
-      yield view.getBigInt64(pos, false)
+      const val = view.getBigInt64(pos, false)
+      yield new ValueNode(val)
       pos += 8
     } else if (firstByte === FLOAT32_PREFIX) {
-      yield view.getFloat32(pos, false)
+      const val = view.getFloat32(pos, false)
+      yield new ValueNode(val)
       pos += 4
     } else if (firstByte === FLOAT64_PREFIX) {
-      yield view.getFloat64(pos, false)
+      const val = view.getFloat64(pos, false)
+      yield new ValueNode(val)
       pos += 8
     } else if (firstByte === NIL) {
-      yield null
+      yield new ValueNode(null)
     } else if (firstByte === BOOL_FALSE) {
-      yield false
+      yield new ValueNode(false)
     } else if (firstByte === BOOL_TRUE) {
-      yield true
+      yield new ValueNode(true)
     } else if (firstByte === BIN8_PREFIX) {
       const sizeByte = 1
       const dataByte = view.getUint8(pos)
-      yield decodeBinWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      yield new ValueNode(
+        decodeBinWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      )
       pos += sizeByte + dataByte
     } else if (firstByte === BIN16_PREFIX) {
       const sizeByte = 2
       const dataByte = view.getUint16(pos, false)
-      yield decodeBinWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      yield new ValueNode(
+        decodeBinWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      )
       pos += sizeByte + dataByte
     } else if (firstByte === BIN32_PREFIX) {
       const sizeByte = 4
       const dataByte = view.getUint32(pos, false)
-      yield decodeBinWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      yield new ValueNode(
+        decodeBinWithFlexibleSize(buffer, pos, sizeByte, dataByte)
+      )
       pos += sizeByte + dataByte
     } else if (firstByte === FIXEXT1_PREFIX) {
-      yield decodeExtWithFlexibleSize(view, buffer, pos, 0, 1)
+      const val = decodeExtWithFlexibleSize(view, buffer, pos, 0, 1)
+      yield new ValueNode(val)
       pos += 0 + 1 + 1
     } else if (firstByte === FIXEXT2_PREFIX) {
-      yield decodeExtWithFlexibleSize(view, buffer, pos, 0, 2)
+      const val = decodeExtWithFlexibleSize(view, buffer, pos, 0, 2)
+      yield new ValueNode(val)
       pos += 0 + 1 + 2
     } else if (firstByte === FIXEXT4_PREFIX) {
-      yield decodeExtWithFlexibleSize(view, buffer, pos, 0, 4)
+      const val = decodeExtWithFlexibleSize(view, buffer, pos, 0, 4)
+      yield new ValueNode(val)
       pos += 0 + 1 + 2
     } else if (firstByte === FIXEXT8_PREFIX) {
-      yield decodeExtWithFlexibleSize(view, buffer, pos, 0, 8)
+      const val = decodeExtWithFlexibleSize(view, buffer, pos, 0, 8)
+      yield new ValueNode(val)
       pos += 0 + 1 + 8
     } else if (firstByte === FIXEXT16_PREFIX) {
-      yield decodeExtWithFlexibleSize(view, buffer, pos, 0, 16)
+      const val = decodeExtWithFlexibleSize(view, buffer, pos, 0, 16)
+      yield new ValueNode(val)
       pos += 0 + 1 + 16
     } else if (firstByte === EXT8_PREFIX) {
       const sizeByte = 1
       const dataByte = view.getUint8(pos)
-      yield decodeExtWithFlexibleSize(view, buffer, pos, sizeByte, dataByte)
+      const val = decodeExtWithFlexibleSize(
+        view,
+        buffer,
+        pos,
+        sizeByte,
+        dataByte
+      )
+      yield new ValueNode(val)
       pos += sizeByte + 1 + dataByte
     } else if (firstByte === EXT16_PREFIX) {
       const sizeByte = 2
       const dataByte = view.getUint16(pos, false)
-      yield decodeExtWithFlexibleSize(view, buffer, pos, sizeByte, dataByte)
+      const val = decodeExtWithFlexibleSize(
+        view,
+        buffer,
+        pos,
+        sizeByte,
+        dataByte
+      )
+      yield new ValueNode(val)
       pos += sizeByte + 1 + dataByte
     } else if (firstByte === EXT32_PREFIX) {
       const sizeByte = 4
       const dataByte = view.getUint32(pos, false)
-      yield decodeExtWithFlexibleSize(view, buffer, pos, sizeByte, dataByte)
+      const val = decodeExtWithFlexibleSize(
+        view,
+        buffer,
+        pos,
+        sizeByte,
+        dataByte
+      )
+      yield new ValueNode(val)
       pos += sizeByte + 1 + dataByte
     } else {
       const firtByteHex = firstByte.toString(16)
@@ -245,34 +283,67 @@ export default function* parseBuffer(buffer: Uint8Array) {
       throw new Error(`Unknown first byte. (${firtByteHex})`)
     }
   }
+
+  return stringNodes
 }
 
-const textDecoder = new TextDecoder()
-function decodeStrWithFlexibleSize(
-  buffer: Uint8Array,
-  pos: number,
-  sizeByteLength: number,
-  dataByteLength: number
-): string {
-  const strDataRange = calculateDataRange(pos, sizeByteLength, dataByteLength)
-  const buf = buffer.subarray(strDataRange.start, strDataRange.end)
-  if (shortStringCacheEnabled && dataByteLength < shortStringCacheLessThan) {
-    return remember(buf, utf8Decode)
-  } else if (jsUtf8DecodeEnabled && dataByteLength < jsUtf8DecodeLessThan) {
-    return utf8Decode(buf)
-  } else {
-    return textDecoder.decode(buf)
+export type AllNode = MapNode | ArrayNode | StringNode | ValueNode
+
+export class MapNode {
+  elementsLeft: number
+  elements: Array<StringNode> = []
+  constructor(public readonly size: number) {
+    this.elementsLeft = size
+    this.elements = new Array(size)
+  }
+}
+
+export class ArrayNode {
+  elementsLeft: number
+  elements: Array<AllNode>
+  constructor(public readonly size: number) {
+    this.elementsLeft = size
+    this.elements = new Array(size)
+  }
+}
+
+/**
+ * Contains any value except string
+ */
+export class ValueNode {
+  constructor(public val: unknown) {}
+}
+
+/**
+ * String node could be seen as plain value node or a map-key node of map. Buffers in both of them need text-decoding.
+ */
+export class StringNode {
+  /**
+   * Must use a fresh copy of buffer, otherwise the buffer being read will be transfer to worker thread, and not readable to main thread.
+   */
+  constructor(public buf: Uint8Array) {}
+  val?: string
+  next?: AllNode
+
+  static fromRangeSlice(
+    buf: Uint8Array,
+    pos: number,
+    sizeByte: number,
+    dataByte: number
+  ) {
+    const { start, end } = calculateDataRange(pos, sizeByte, dataByte)
+    return new StringNode(buf.slice(start, end))
   }
 }
 
 function decodeBinWithFlexibleSize(
-  uint8View: Uint8Array,
+  buffer: Uint8Array,
   pos: number,
   sizeByteLength: number,
   dataByteLength: number
 ): Uint8Array {
   const binDataRange = calculateDataRange(pos, sizeByteLength, dataByteLength)
-  return uint8View.subarray(binDataRange.start, binDataRange.end)
+  return buffer.subarray(binDataRange.start, binDataRange.end)
 }
 
 function decodeExtWithFlexibleSize(

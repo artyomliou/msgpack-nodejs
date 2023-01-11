@@ -32,7 +32,6 @@ import {
   MAP16_PREFIX,
   MAP32_PREFIX,
 } from "../constants/index.js"
-import { debugMode } from "../constants/debug.js"
 import { EncodableValue } from "../types.js"
 import { getExtension } from "../extensions/registry.js"
 import { LruCache } from "../cache.js"
@@ -70,12 +69,7 @@ export function optIn(opt: Options) {
 export default function msgPackEncode(src: EncodableValue): Uint8Array {
   const byteArray = new ByteArray()
   match(byteArray, src)
-
-  const buffer = byteArray.getBuffer()
-  if (debugMode) {
-    console.debug(buffer)
-  }
-  return buffer
+  return byteArray.getBuffer()
 }
 
 function match(byteArray: ByteArray, val: EncodableValue): void {
