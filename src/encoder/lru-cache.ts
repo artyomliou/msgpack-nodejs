@@ -44,17 +44,16 @@ export class LruCache<K, C = Uint8Array> {
       // If this key appears first time, we keep record of it.
       if (!this.rareKeys.has(key)) {
         this.rareKeys.add(key)
+        // Evict
+        if (this.rareKeys.size >= 500) {
+          this.stat.rare += this.rareKeys.size
+          this.rareKeys.clear()
+        }
         return cb(key) as C
       }
 
       // If this key appears second time, we can cache it.
       this.rareKeys.delete(key)
-
-      // Evict
-      if (this.rareKeys.size >= 200) {
-        this.stat.rare += this.rareKeys.size
-        this.rareKeys.clear()
-      }
     }
 
     // Cache the value
