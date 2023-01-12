@@ -4,12 +4,12 @@ import awsIpRanges from "./dataset/aws-ip-ranges.json"
 import googleMapsDistanceMatrix from "./dataset/google-maps-distance-matrix.json"
 import { lruCacheStat } from "../src/cache.js"
 import { bufferAllocatorStat } from "../src/encoder/byte-array.js"
-import { uint8TreeStat } from "../src/decoder/uint8-tree.js"
+import { prefixTrieStat } from "../src/prefix-trie.js"
 
 afterAll(() => {
   console.log(lruCacheStat())
   console.log(bufferAllocatorStat())
-  console.log(uint8TreeStat())
+  console.log(prefixTrieStat())
 })
 
 describe("Realworld", () => {

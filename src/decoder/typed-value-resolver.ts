@@ -34,7 +34,7 @@ import {
 } from "../constants/index.js"
 import { debugMode } from "../constants/debug.js"
 import { utf8Decode } from "./utf8-decode.js"
-import { remember } from "./uint8-tree.js"
+import PrefixTrie from "../prefix-trie.js"
 import { Options } from "../options.js"
 
 /**
@@ -61,6 +61,11 @@ export function optIn(opt: Options) {
     jsUtf8DecodeLessThan = opt.decoder.jsUtf8Decode.lessThan
   }
 }
+
+/**
+ * Prefix trie that always initialized
+ */
+const trie = new PrefixTrie()
 
 /**
  * Describe size of array
@@ -257,7 +262,13 @@ function decodeStrWithFlexibleSize(
   const strDataRange = calculateDataRange(pos, sizeByteLength, dataByteLength)
   const buf = buffer.subarray(strDataRange.start, strDataRange.end)
   if (shortStringCacheEnabled && dataByteLength < shortStringCacheLessThan) {
-    return remember(buf, utf8Decode)
+    let result = trie.search(buf)
+    if (result) {
+      return result
+    }
+    result = utf8Decode(buf)
+    trie.insert(buf, result)
+    return result
   } else if (jsUtf8DecodeEnabled && dataByteLength < jsUtf8DecodeLessThan) {
     return utf8Decode(buf)
   } else {
