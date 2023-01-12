@@ -34,7 +34,7 @@ import {
 } from "../constants/index.js"
 import { debugMode } from "../constants/debug.js"
 import { utf8Decode } from "./utf8-decode.js"
-import PrefixTrie from "../prefix-trie.js"
+import PrefixTrie from "./prefix-trie.js"
 import { Options } from "../options.js"
 
 /**
