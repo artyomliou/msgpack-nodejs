@@ -31,8 +31,7 @@ import {
   ARRAY32_PREFIX,
   MAP16_PREFIX,
   MAP32_PREFIX,
-} from "../constants/index.js"
-import { debugMode } from "../constants/debug.js"
+} from "../constant.js"
 import { utf8Decode } from "./utf8-decode.js"
 import PrefixTrie from "./prefix-trie.js"
 import { Options } from "../options.js"
@@ -93,11 +92,9 @@ const objDescPool: Record<number, ObjectDescriptor> = {}
 
 export default function* parseBuffer(buffer: Uint8Array) {
   const view = new DataView(buffer.buffer, buffer.byteOffset, buffer.byteLength)
-  if (debugMode) {
-    console.log(
-      `buffer length = ${buffer.byteLength}, view length = ${view.byteLength}, view buffer length = ${view.buffer.byteLength}`
-    )
-  }
+  // console.log(
+  //   `buffer length = ${buffer.byteLength}, view length = ${view.byteLength}, view buffer length = ${view.buffer.byteLength}`
+  // )
 
   let pos = 0
   while (pos < view.byteLength) {
@@ -173,7 +170,8 @@ export default function* parseBuffer(buffer: Uint8Array) {
       yield view.getUint32(pos, false)
       pos += 4
     } else if (firstByte === UINT64_PREFIX) {
-      yield view.getBigUint64(pos, false)
+      const bigint = view.getBigUint64(pos, false)
+      yield bigint >> 53n > 0 ? bigint : Number(bigint)
       pos += 8
     } else if (firstByte === INT8_PREFIX) {
       yield view.getInt8(pos)
@@ -185,7 +183,8 @@ export default function* parseBuffer(buffer: Uint8Array) {
       yield view.getInt32(pos, false)
       pos += 4
     } else if (firstByte === INT64_PREFIX) {
-      yield view.getBigInt64(pos, false)
+      const bigint = view.getBigInt64(pos, false)
+      yield -bigint >> 53n > 0 ? bigint : Number(bigint)
       pos += 8
     } else if (firstByte === FLOAT32_PREFIX) {
       yield view.getFloat32(pos, false)

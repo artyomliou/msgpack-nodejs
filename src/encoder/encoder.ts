@@ -31,8 +31,7 @@ import {
   ARRAY32_PREFIX,
   MAP16_PREFIX,
   MAP32_PREFIX,
-} from "../constants/index.js"
-import { debugMode } from "../constants/debug.js"
+} from "../constant.js"
 import { EncodableValue } from "../types.js"
 import { getExtension } from "../extensions/registry.js"
 import { LruCache } from "./lru-cache.js"
@@ -70,12 +69,7 @@ export function optIn(opt: Options) {
 export default function msgPackEncode(src: EncodableValue): Uint8Array {
   const byteArray = new ByteArray()
   match(byteArray, src)
-
-  const buffer = byteArray.getBuffer()
-  if (debugMode) {
-    console.debug(buffer)
-  }
-  return buffer
+  return byteArray.getBuffer()
 }
 
 function match(byteArray: ByteArray, val: EncodableValue): void {
@@ -107,7 +101,7 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
 
     case "object":
       if (val instanceof Uint8Array) {
-        encodeBuffer(byteArray, val)
+        encodeBin(byteArray, val)
         return
       }
       if (val instanceof Array) {
@@ -157,28 +151,34 @@ function encodeInteger(byteArray: ByteArray, number: number): void {
   } else if (number < 0 && number >= -32) {
     // negative fixint stores 5-bit negative integer
     byteArray.writeInt8(number)
-  } else if (0 < number && number <= 0xff) {
-    byteArray.writeUint8(UINT8_PREFIX)
-    byteArray.writeUint8(number)
-  } else if (0 < number && number <= 0xffff) {
-    byteArray.writeUint8(UINT16_PREFIX)
-    byteArray.writeUint16(number)
-  } else if (0 < number && number <= 0xffffffff) {
-    byteArray.writeUint8(UINT32_PREFIX)
-    byteArray.writeUint32(number)
-  } else if (-0x80 <= number && number < 0) {
-    byteArray.writeUint8(INT8_PREFIX)
-    byteArray.writeInt8(number)
-  } else if (-0x8000 <= number && number < 0) {
-    byteArray.writeUint8(INT16_PREFIX)
-    byteArray.writeInt16(number)
-  } else if (-0x80000000 <= number && number < 0) {
-    byteArray.writeUint8(INT32_PREFIX)
-    byteArray.writeInt32(number)
+  } else if (0 < number) {
+    if (number <= 0xff) {
+      byteArray.writeUint8(UINT8_PREFIX)
+      byteArray.writeUint8(number)
+    } else if (number <= 0xffff) {
+      byteArray.writeUint8(UINT16_PREFIX)
+      byteArray.writeUint16(number)
+    } else if (number <= 0xffffffff) {
+      byteArray.writeUint8(UINT32_PREFIX)
+      byteArray.writeUint32(number)
+    } else {
+      byteArray.writeUint8(UINT64_PREFIX)
+      byteArray.writeUint64(BigInt(number))
+    }
   } else {
-    throw new Error(
-      "Cannot handle integer more than 4294967295 or less than -2147483648."
-    )
+    if (-0x80 < number) {
+      byteArray.writeUint8(INT8_PREFIX)
+      byteArray.writeInt8(number)
+    } else if (-0x8000 < number) {
+      byteArray.writeUint8(INT16_PREFIX)
+      byteArray.writeInt16(number)
+    } else if (-0x80000000 < number) {
+      byteArray.writeUint8(INT32_PREFIX)
+      byteArray.writeInt32(number)
+    } else {
+      byteArray.writeUint8(INT64_PREFIX)
+      byteArray.writeInt64(BigInt(number))
+    }
   }
 }
 
@@ -237,18 +237,18 @@ function writeString(byteArray: ByteArray, buffer: Uint8Array) {
   }
 }
 
-function encodeBuffer(byteArray: ByteArray, buffer: Uint8Array): void {
+function encodeBin(byteArray: ByteArray, buffer: Uint8Array): void {
   const bytesCount = buffer.byteLength
 
-  if (bytesCount < 0xff) {
+  if (bytesCount <= 0xff) {
     byteArray.writeUint8(BIN8_PREFIX)
     byteArray.writeUint8(bytesCount)
     byteArray.append(buffer)
-  } else if (bytesCount < 0xffff) {
+  } else if (bytesCount <= 0xffff) {
     byteArray.writeUint8(BIN16_PREFIX)
     byteArray.writeUint16(bytesCount)
     byteArray.append(buffer)
-  } else if (bytesCount < 0xffffffff) {
+  } else if (bytesCount <= 0xffffffff) {
     byteArray.writeUint8(BIN32_PREFIX)
     byteArray.writeUint32(bytesCount)
     byteArray.append(buffer)
@@ -258,12 +258,12 @@ function encodeBuffer(byteArray: ByteArray, buffer: Uint8Array): void {
 }
 
 function encodeArray(byteArray: ByteArray, arraySize: number): void {
-  if (arraySize < 0xf) {
+  if (arraySize <= 0xf) {
     byteArray.writeUint8(0b10010000 + arraySize)
-  } else if (arraySize < 0xffff) {
+  } else if (arraySize <= 0xffff) {
     byteArray.writeUint8(ARRAY16_PREFIX)
     byteArray.writeUint16(arraySize)
-  } else if (arraySize < 0xffffffff) {
+  } else if (arraySize <= 0xffffffff) {
     byteArray.writeUint8(ARRAY32_PREFIX)
     byteArray.writeUint32(arraySize)
   } else {
@@ -291,10 +291,7 @@ function encodeExt(byteArray: ByteArray, type: number, data: Uint8Array): void {
   let firstByte: number | undefined
   let byteLengthLength = 0
   let byteLengthPos: number | undefined
-  // let typePos = 1
-  // let dataPos = 2
 
-  // fixint
   if (byteLength === 1) {
     firstByte = FIXEXT1_PREFIX
   } else if (byteLength === 2) {
@@ -305,27 +302,21 @@ function encodeExt(byteArray: ByteArray, type: number, data: Uint8Array): void {
     firstByte = FIXEXT8_PREFIX
   } else if (byteLength === 16) {
     firstByte = FIXEXT16_PREFIX
-  }
-
-  // ext 8
-  if (byteLength < 0xff) {
+  } else if (byteLength <= 0xff) {
+    // ext 8
     firstByte = EXT8_PREFIX
     byteLengthLength = 1
     byteLengthPos = 1
-    // typePos = 2
-    // dataPos = 3
-  } else if (byteLength < 0xffff) {
+  } else if (byteLength <= 0xffff) {
+    // ext 16
     firstByte = EXT16_PREFIX
     byteLengthLength = 2
     byteLengthPos = 1
-    // typePos = 3
-    // dataPos = 4
-  } else if (byteLength < 0xffffffff) {
+  } else if (byteLength <= 0xffffffff) {
+    // ext 32
     firstByte = EXT32_PREFIX
     byteLengthLength = 4
     byteLengthPos = 1
-    // typePos = 5
-    // dataPos = 6
   } else {
     throw new Error("Ext does not support data exceeding 2**32-1 bytes.")
   }
