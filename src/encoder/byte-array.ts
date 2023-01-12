@@ -82,9 +82,11 @@ export default class ByteArray {
     })
   }
 
-  writeUint8(number: number): void {
-    this.ensureEnoughSpace(1, () => {
-      this.view.setUint8(this.pos, number)
+  writeUint8(...numbers: number[]): void {
+    this.ensureEnoughSpace(numbers.length, () => {
+      numbers.forEach((num, idx) => {
+        this.view.setUint8(this.pos + idx, num)
+      })
     })
   }
 

@@ -51,8 +51,4 @@ export class LruCache<K, C = Uint8Array> {
 
     return val
   }
-
-  noRareKeys() {
-    return this
-  }
 }

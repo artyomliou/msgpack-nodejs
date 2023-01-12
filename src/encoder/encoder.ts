@@ -41,7 +41,7 @@ import { Options } from "../options.js"
  * Opt in caches
  */
 const mapKeyCache = new LruCache<string>("Map-key LruCache", 30)
-const stringCache = new LruCache<string>("String LruCache", 100).noRareKeys()
+const stringCache = new LruCache<string>("String LruCache", 100)
 let mapkeyCacheEnabled = true
 let stringCacheEnabled = true
 
@@ -153,8 +153,7 @@ function encodeInteger(byteArray: ByteArray, number: number): void {
     byteArray.writeInt8(number)
   } else if (0 < number) {
     if (number <= 0xff) {
-      byteArray.writeUint8(UINT8_PREFIX)
-      byteArray.writeUint8(number)
+      byteArray.writeUint8(UINT8_PREFIX, number)
     } else if (number <= 0xffff) {
       byteArray.writeUint8(UINT16_PREFIX)
       byteArray.writeUint16(number)
@@ -220,15 +219,14 @@ function writeString(byteArray: ByteArray, buffer: Uint8Array) {
   if (bytesCount <= 31) {
     byteArray.writeUint8(0b10100000 + bytesCount)
     byteArray.append(buffer)
-  } else if (bytesCount < 0xff) {
-    byteArray.writeUint8(STR8_PREFIX)
-    byteArray.writeUint8(bytesCount)
+  } else if (bytesCount <= 0xff) {
+    byteArray.writeUint8(STR8_PREFIX, bytesCount)
     byteArray.append(buffer)
-  } else if (bytesCount < 0xffff) {
+  } else if (bytesCount <= 0xffff) {
     byteArray.writeUint8(STR16_PREFIX)
     byteArray.writeUint16(bytesCount)
     byteArray.append(buffer)
-  } else if (bytesCount < 0xffffffff) {
+  } else if (bytesCount <= 0xffffffff) {
     byteArray.writeUint8(STR32_PREFIX)
     byteArray.writeUint32(bytesCount)
     byteArray.append(buffer)
@@ -241,8 +239,7 @@ function encodeBin(byteArray: ByteArray, buffer: Uint8Array): void {
   const bytesCount = buffer.byteLength
 
   if (bytesCount <= 0xff) {
-    byteArray.writeUint8(BIN8_PREFIX)
-    byteArray.writeUint8(bytesCount)
+    byteArray.writeUint8(BIN8_PREFIX, bytesCount)
     byteArray.append(buffer)
   } else if (bytesCount <= 0xffff) {
     byteArray.writeUint8(BIN16_PREFIX)
@@ -274,10 +271,10 @@ function encodeArray(byteArray: ByteArray, arraySize: number): void {
 function encodeMap(byteArray: ByteArray, mapSize: number): void {
   if (mapSize < 0xf) {
     byteArray.writeUint8(0b10000000 + mapSize)
-  } else if (mapSize < 0xffff) {
+  } else if (mapSize <= 0xffff) {
     byteArray.writeUint8(MAP16_PREFIX)
     byteArray.writeUint16(mapSize)
-  } else if (mapSize < 0xffffffff) {
+  } else if (mapSize <= 0xffffffff) {
     byteArray.writeUint8(MAP32_PREFIX)
     byteArray.writeUint32(mapSize)
   } else {
