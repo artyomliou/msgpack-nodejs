@@ -17,6 +17,7 @@ interface Stat {
 export class LruCache<K, C = Uint8Array> {
   public stat: Stat
   private cache: Map<K, C> = new Map()
+  private rareKeys?: Set<K>
 
   constructor(public name: string, public size = 30) {
     caches[name] = this
@@ -38,6 +39,24 @@ export class LruCache<K, C = Uint8Array> {
       return val
     }
 
+    // Prevent rare keys
+    if (this.rareKeys) {
+      // If this key appears first time, we keep record of it.
+      if (!this.rareKeys.has(key)) {
+        this.rareKeys.add(key)
+        return cb(key) as C
+      }
+
+      // If this key appears second time, we can cache it.
+      this.rareKeys.delete(key)
+
+      // Evict
+      if (this.rareKeys.size >= 200) {
+        this.stat.rare += this.rareKeys.size
+        this.rareKeys.clear()
+      }
+    }
+
     // Cache the value
     val = cb(key) as C
     this.cache.set(key, val)
@@ -50,5 +69,12 @@ export class LruCache<K, C = Uint8Array> {
     }
 
     return val
+  }
+
+  noRareKeys() {
+    if (!this.rareKeys) {
+      this.rareKeys = new Set()
+    }
+    return this
   }
 }

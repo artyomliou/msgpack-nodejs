@@ -3,7 +3,6 @@
 ## Pending
 
 - feat: more available options
-- fix: remove rare-key-prevention from [lru-cache](src/encoder/lru-cache.ts)
 - optimize(encoder): different size for string cache
 - test: rewrite encoder/decoder tests
 
