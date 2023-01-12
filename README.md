@@ -124,7 +124,6 @@ Thanks to [AppSpector](https://appspector.com/blog/how-to-improve-messagepack-ja
 And [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) for better buffer allocation strategy.
 
 - To avoid encoding same string again and again, [LruCache](src/cache.ts) was deployed.
-- To avoid caching rare string and evict it immediately, [LruCache](src/cache.ts) used a `Set()` to filter out rare string.
 - To avoid massive evicting, map-key caching and string caching were separated.
 - To avoid overhead on writing, [ByteArray](src/encoder/byte-array.ts) used `DataView` calls as much as possible.
 - To avoid unnecessary buffer allocation, every [ByteArray](src/encoder/byte-array.ts) begins with small buffer (1K).

@@ -3,6 +3,7 @@
 ## Pending
 
 - feat: more available options
+- fix: remove rare-key-prevention from [lru-cache](src/cache.ts)
 
 ## 1.3.6
 
