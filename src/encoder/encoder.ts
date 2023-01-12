@@ -35,7 +35,7 @@ import {
 import { debugMode } from "../constants/debug.js"
 import { EncodableValue } from "../types.js"
 import { getExtension } from "../extensions/registry.js"
-import { LruCache } from "../cache.js"
+import { LruCache } from "./lru-cache.js"
 import { Options } from "../options.js"
 
 /**
