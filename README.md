@@ -14,15 +14,15 @@ The purpose behind is learning by doing, which focuses on modern tools/technique
 - [Usage](#usage)
   - [API](#api)
   - [Examples](#examples)
-- [Implementation detail](#implementation-detail)
-  - [Encode](#encode)
-  - [Decode](#decode)
-  - [Lesson learned](#lessons-learned)
 - [Project status](#project-status)
   - [Compability](#compability)
   - [Benchmark](#benchmark)
   - [Limitation](#limitation)
   - [TODO](#todo)
+- [Implementation detail](#implementation-detail)
+  - [Encode](#encode)
+  - [Decode](#decode)
+  - [Lesson learned](#lessons-learned)
 - [References](#references)
 
 ---
@@ -45,33 +45,39 @@ npm test
 5. [registerExtension()](src/extensions/registry.ts)
 6. [CustomExtension type](src/extensions/interface.ts)
 7. [getExtension()](src/extensions/registry.ts): Get extension with type (number) or class constructor (function)
-8. [applyOptions](src/index.ts): Let you control whether to cache string or not
+8. [applyOptions](src/options.ts): Let you control whether to cache string or not
 
 ## Examples
 
 ### Encode / Decode
 
 ```javascript
-import { encode } from "msgpack-nodejs"
+import { encode, decode } from "msgpack-nodejs"
 console.log(encode({ compact: true, schema: 0 }))
-// return
-// ArrayBuffer {
-//  [Uint8Contents]: <82 a7 63 6f 6d 70 61 63 74 c3 a6 73 63 68 65 6d 61 00>,
-//  byteLength: 18
-//}
-```
-
-```javascript
-import { decode } from "msgpack-nodejs"
 console.log(
   decode(
-    new Uint8Array([
-      0x82, 0xa7, 0x63, 0x6f, 0x6d, 0x70, 0x61, 0x63, 0x74, 0xc3, 0xa6, 0x73,
-      0x63, 0x68, 0x65, 0x6d, 0x61, 0x00,
-    ]).buffer
+    Uint8Array.of(
+      0x82,
+      0xa7,
+      0x63,
+      0x6f,
+      0x6d,
+      0x70,
+      0x61,
+      0x63,
+      0x74,
+      0xc3,
+      0xa6,
+      0x73,
+      0x63,
+      0x68,
+      0x65,
+      0x6d,
+      0x61,
+      0x00
+    )
   )
 )
-// return { compact: true, schema: 0 }
 ```
 
 ### Stream
@@ -105,54 +111,6 @@ You can register extension, with a number (0 ~ 127) as its type, and a object co
 
 - [Example](test/extension.spec.ts)
 - [Built-in Date() extension](src/extensions/timestamp-extension.ts)
-
----
-
-# Implementation detail
-
-## Encode
-
-[Encoder](src/encoder/encoder.ts) uses a recursive function `match()` to match JSON structure (primitive value, object, array or nested), and pushes anything encoded into [ByteArray](src/encoder/byte-array.ts) that responsible for allocating buffer. Encoded string may be cached in [LruCache](src/cache.ts).
-
-## Decode
-
-[Decoder](src/decoder/decoder.ts) uses [TypedValueResolver](src/decoder/typed-value-resolver.ts) to read every value out, and push them into [StructBuilder](src/decoder/struct-builder.ts) to rebuild whole JSON object. For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [uint8-tree](src/decoder/uint8-tree.ts).
-
-#### Optimization strategies:
-
-Thanks to [AppSpector](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times), this article gives very practical advices.  
-And [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) for better buffer allocation strategy.
-
-- To avoid encoding same string again and again, [LruCache](src/cache.ts) was deployed.
-- To avoid massive evicting, map-key caching and string caching were separated.
-- To avoid overhead on writing, [ByteArray](src/encoder/byte-array.ts) used `DataView` calls as much as possible.
-- To avoid unnecessary buffer allocation, every [ByteArray](src/encoder/byte-array.ts) begins with small buffer (1K).
-- To quickly respond to unexpectable large size requested by large JSON, [ByteArray](src/encoder/byte-array.ts) allocates exponentially.
-- To avoid syntax penalty of [private class fields](https://v8.dev/blog/faster-class-features) under node.js 18, use [TypeScript's syntax](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats) instead.
-- To maximize performance of array, [pre-allocated array size](src/decoder/decoder.ts#L11-L12).
-- To maximize performance, use [Generator function](src/decoder/typed-value-resolver.ts)
-- To reduce memory usage, cache [Object/array descriptor](src/decoder/typed-value-resolver.ts#L39-L46)
-- To improve decoding peformance, cache Uint8Array in [tree](src/decoder/uint8-tree.ts)
-- To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes.
-
-## Lessons learned
-
-- Javascript
-  - The difference between [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer), [TypedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray) and the node.js API [Buffer](https://nodejs.org/api/buffer.html)
-  - [BigInt operators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#operators)
-  - The limitation of JS [left shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift) and [right shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift)
-  - [Private class features](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_class_fields)
-  - The performance benefit of better buffer allocation strategy
-  - [Pre-allocated size](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times)
-  - [UTF-8 dncoding/decoding](https://zh.wikipedia.org/zh-tw/UTF-8#UTF-8%E7%9A%84%E7%B7%A8%E7%A2%BC%E6%96%B9%E5%BC%8F)
-- Node.js
-  - [Profiler](https://nodejs.org/en/docs/guides/simple-profiling/)
-- [Typescript](https://www.typescriptlang.org/cheatsheets)
-  - Testing - [ts-jest](https://kulshekhar.github.io/ts-jest/docs/guides/esm-support)
-  - Linter - [typescript-eslint](https://github.com/typescript-eslint/typescript-eslint) & [lint-staged](https://github.com/okonet/lint-staged)
-  - Packaging for ESModule & CommonJS
-- CI & CD
-  - [Github Actions](https://github.com/artyomliou/msgpack-nodejs/actions)
 
 ---
 
@@ -196,11 +154,67 @@ Runs on node.js 16 & R5-5625U.
 ## Limitation
 
 1. Ext family does not have complete test cases for now.
-2. Does not support float 32, because Javascript float is always 64-bit.
+2. Does not support float 32 encoding, because Javascript float is always 64-bit.
 
 ## TODO
 
 1. Ext family fully tested
+
+---
+
+# Implementation detail
+
+## Encode
+
+[Encoder](src/encoder/encoder.ts) uses a recursive function `match()` to match JSON structure (primitive value, object, array or nested), and pushes anything encoded into [ByteArray](src/encoder/byte-array.ts) that responsible for allocating buffer. Encoded string may be cached in [LruCache](src/encoder/lru-cache.ts).
+
+## Decode
+
+[Decoder](src/decoder/decoder.ts) uses [TypedValueResolver](src/decoder/typed-value-resolver.ts) to read every value out, and push them into [StructBuilder](src/decoder/struct-builder.ts) to rebuild whole JSON object. For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [prefix trie](src/decoder/prefix-trie.ts).
+
+#### Optimization strategies:
+
+Thanks to [AppSpector](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times), this article gives very practical advices.  
+And [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) for better buffer allocation strategy.
+
+##### Cache
+
+- To improve encoding performance, [LruCache](src/encoder/lru-cache.ts) was deployed.
+- To improve decoding peformance, [prefix trie](src/decoder/prefix-trie.ts) was deployed for Uint8Array caching.
+- To avoid evicting, map-key caching and string caching were separated.
+- To reduce memory usage, cache [Object/array descriptor](src/decoder/typed-value-resolver.ts#L69-L91)
+
+##### ArrayBuffer / TypedArray
+
+- To efficiently allocate new buffer, every [ByteArray](src/encoder/byte-array.ts) begins with small buffer (1K).
+- To efficiently handle unpredictable large JSON, [ByteArray](src/encoder/byte-array.ts) allocates exponentially.
+- To avoid overhead on writing, [ByteArray](src/encoder/byte-array.ts) uses [`DataView` calls](https://v8.dev/blog/dataview) as much as possible.
+
+##### Node.js
+
+- To maximize performance of array, [pre-allocated array size](src/decoder/decoder.ts#L11-L12).
+- To maximize performance, use [Generator function](src/decoder/typed-value-resolver.ts)
+- To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes.
+- To avoid syntax penalty of [private class fields](https://v8.dev/blog/faster-class-features) under node.js 18, use [TypeScript's syntax](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats) instead.
+
+## Lessons learned
+
+- Javascript
+  - The difference between [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer), [TypedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray) and the node.js API [Buffer](https://nodejs.org/api/buffer.html)
+  - [BigInt operators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#operators)
+  - The limitation of JS [left shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift) and [right shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift)
+  - [Private class features](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_class_fields)
+  - The performance benefit of better buffer allocation strategy
+  - [Pre-allocated size](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times)
+  - [UTF-8 dncoding/decoding](https://zh.wikipedia.org/zh-tw/UTF-8#UTF-8%E7%9A%84%E7%B7%A8%E7%A2%BC%E6%96%B9%E5%BC%8F)
+- Node.js
+  - [Profiler](https://nodejs.org/en/docs/guides/simple-profiling/)
+- [Typescript](https://www.typescriptlang.org/cheatsheets)
+  - Testing - [ts-jest](https://kulshekhar.github.io/ts-jest/docs/guides/esm-support)
+  - Linter - [typescript-eslint](https://github.com/typescript-eslint/typescript-eslint) & [lint-staged](https://github.com/okonet/lint-staged)
+  - Packaging for ESModule & CommonJS
+- CI & CD
+  - [Github Actions](https://github.com/artyomliou/msgpack-nodejs/actions)
 
 ---
 
