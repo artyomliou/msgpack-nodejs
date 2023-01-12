@@ -1,6 +1,6 @@
 # Versions
 
-## Pending
+## 1.3.7
 
 - feat: more available options
 - optimize(encoder): different size for string cache

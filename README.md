@@ -148,8 +148,8 @@ Runs on node.js 16 & R5-5625U.
 | buf = require("notepack").encode(obj);                    | 1104300 | 5000 | 220860 |
 | obj = require("notepack").decode(buf);                    |  670300 | 5000 | 134060 |
 | obj = require("msgpack-unpack").decode(buf);              |  161600 | 5001 |  32313 |
-| **buf = require("msgpack-nodejs").encode(obj);**          | 1111100 | 5000 | 222220 |
-| **obj = require("msgpack-nodejs").decode(buf);**          |  612200 | 5000 | 122440 |
+| **buf = require("msgpack-nodejs").encode(obj);**          | 1075500 | 5000 | 215100 |
+| **obj = require("msgpack-nodejs").decode(buf);**          |  621700 | 5000 | 124340 |
 
 ## Limitation
 
