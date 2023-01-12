@@ -1,22 +1,32 @@
-const caches: LruCache<unknown, unknown>[] = []
-
 export function lruCacheStat() {
-  return caches.map((c) => c.stat)
+  const output: Record<string, Stat> = {}
+  for (const [name, cache] of Object.entries(caches)) {
+    output[name] = cache.stat
+  }
+  return output
+}
+const caches: Record<string, LruCache<unknown, unknown>> = {}
+
+interface Stat {
+  hit: number
+  missed: number
+  evicted: number
+  rare: number
 }
 
 export class LruCache<K, C = Uint8Array> {
+  public stat: Stat
   private cache: Map<K, C> = new Map()
   private rareKeys?: Set<K>
-  public stat = {
-    hit: 0,
-    missed: 0,
-    evicted: 0,
-    rare: 0,
-  }
 
-  constructor(public size = 30) {
-    // For stat aggregation
-    caches.push(this)
+  constructor(public name: string, public size = 30) {
+    caches[name] = this
+    this.stat = {
+      hit: 0,
+      missed: 0,
+      evicted: 0,
+      rare: 0,
+    }
   }
 
   remember(key: K, cb: CallableFunction): C {

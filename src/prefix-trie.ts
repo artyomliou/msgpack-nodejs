@@ -1,30 +1,40 @@
 export function prefixTrieStat() {
-  return tries.map(({ stat }) => {
-    return Object.assign({}, stat, {
-      avgRoundTrip: stat.totalRoundTrip / (stat.missed + stat.hit),
+  const output: Record<string, Stat> = {}
+  for (const [name, trie] of Object.entries(tries)) {
+    output[name] = Object.assign({}, trie.stat, {
+      avgRoundTrip:
+        trie.stat.totalRoundTrip / (trie.stat.missed + trie.stat.hit),
     })
-  })
+  }
+  return output
 }
-const tries: Array<PrefixTrie> = []
+const tries: Record<string, PrefixTrie> = {}
 
 interface Node {
   value: string | null
   [num: number]: Node
 }
+interface Stat {
+  hit: number
+  missed: number
+  totalRoundTrip: number
+  avgRoundTrip?: number
+}
 
 export default class PrefixTrie {
+  public stat: Stat
   private root: Node
-  public stat: { hit: number; missed: number; totalRoundTrip: number }
-  constructor() {
-    this.root = {
-      value: null,
-    } as Node
+
+  constructor(name: string) {
+    tries[name] = this
     this.stat = {
       hit: 0,
       missed: 0,
       totalRoundTrip: 0,
     }
-    tries.push(this)
+    this.root = {
+      value: null,
+    } as Node
   }
   insert(seq: Uint8Array, value: string) {
     let node = this.root

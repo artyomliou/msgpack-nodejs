@@ -41,8 +41,8 @@ import { Options } from "../options.js"
 /**
  * Opt in caches
  */
-const mapKeyCache = new LruCache<string>(30)
-const stringCache = new LruCache<string>(100).noRareKeys()
+const mapKeyCache = new LruCache<string>("Map-key LruCache", 30)
+const stringCache = new LruCache<string>("String LruCache", 100).noRareKeys()
 let mapkeyCacheEnabled = true
 let stringCacheEnabled = true
 

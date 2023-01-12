@@ -65,7 +65,7 @@ export function optIn(opt: Options) {
 /**
  * Prefix trie that always initialized
  */
-const trie = new PrefixTrie()
+const trie = new PrefixTrie("Short key trie")
 
 /**
  * Describe size of array

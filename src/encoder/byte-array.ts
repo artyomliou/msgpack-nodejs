@@ -1,21 +1,26 @@
 import { Options } from "../options.js"
 
+// Stat
+export function bufferAllocatorStat() {
+  return stat
+}
+const stat: Stat = {
+  copied: 0,
+  maxAllocatedSize: 0,
+  maxOutputSize: 0,
+}
+interface Stat {
+  copied: number
+  maxAllocatedSize: number
+  maxOutputSize: number
+}
+
+// Options
 export function optIn(opt: Options) {
   if (typeof opt?.encoder?.byteArray?.base !== "undefined") {
     bufferAllocator.base = opt.encoder.byteArray.base
   }
 }
-
-export function bufferAllocatorStat() {
-  return stat
-}
-
-const stat = {
-  copied: 0,
-  maxAllocatedSize: 0,
-  maxOutputSize: 0,
-}
-
 const bufferAllocator = {
   base: 1024,
   size(exponent = 0) {
