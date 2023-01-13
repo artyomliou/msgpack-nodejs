@@ -54,7 +54,7 @@ export default class ByteArray {
     return this.array.subarray(0, this.pos)
   }
 
-  private ensureEnoughSpace(byteLength: number, cb: CallableFunction): void {
+  private ensureEnoughSpace(byteLength: number): void {
     const reqSize = this.pos + byteLength
     if (reqSize >= this.array.byteLength) {
       let newSize = reqSize
@@ -71,68 +71,65 @@ export default class ByteArray {
       // Increment stat
       stat.copied++
     }
-
-    cb()
-    this.pos += byteLength
   }
 
   append(array: Uint8Array): void {
-    this.ensureEnoughSpace(array.byteLength, () => {
-      this.array.set(array, this.pos)
-    })
+    this.ensureEnoughSpace(array.byteLength)
+    this.array.set(array, this.pos)
+    this.pos += array.byteLength
   }
 
   writeUint8(number: number): void {
-    this.ensureEnoughSpace(1, () => {
-      this.view.setUint8(this.pos, number)
-    })
+    this.ensureEnoughSpace(1)
+    this.view.setUint8(this.pos, number)
+    this.pos += 1
   }
 
   writeUint16(number: number): void {
-    this.ensureEnoughSpace(2, () => {
-      this.view.setUint16(this.pos, number, false)
-    })
+    this.ensureEnoughSpace(2)
+    this.view.setUint16(this.pos, number, false)
+    this.pos += 2
   }
 
   writeUint32(number: number): void {
-    this.ensureEnoughSpace(4, () => {
-      this.view.setUint32(this.pos, number, false)
-    })
+    this.ensureEnoughSpace(4)
+    this.view.setUint32(this.pos, number, false)
+    this.pos += 4
   }
 
   writeUint64(number: bigint): void {
-    this.ensureEnoughSpace(8, () => {
-      this.view.setBigUint64(this.pos, number, false)
-    })
+    this.ensureEnoughSpace(8)
+    this.view.setBigUint64(this.pos, number, false)
+    this.pos += 8
   }
 
   writeInt8(number: number): void {
-    this.ensureEnoughSpace(1, () => {
-      this.view.setInt8(this.pos, number)
-    })
+    this.ensureEnoughSpace(1)
+    this.view.setInt8(this.pos, number)
+    this.pos += 1
   }
 
   writeInt16(number: number): void {
-    this.ensureEnoughSpace(2, () => {
-      this.view.setInt16(this.pos, number, false)
-    })
+    this.ensureEnoughSpace(2)
+    this.view.setInt16(this.pos, number, false)
+    this.pos += 2
   }
 
   writeInt32(number: number): void {
-    this.ensureEnoughSpace(4, () => {
-      this.view.setInt32(this.pos, number, false)
-    })
+    this.ensureEnoughSpace(4)
+    this.view.setInt32(this.pos, number, false)
+    this.pos += 4
   }
 
   writeInt64(number: bigint): void {
-    this.ensureEnoughSpace(8, () => {
-      this.view.setBigInt64(this.pos, number, false)
-    })
+    this.ensureEnoughSpace(8)
+    this.view.setBigInt64(this.pos, number, false)
+    this.pos += 8
   }
 
   writeFloat64(number: number): void {
-    this.ensureEnoughSpace(8, () => {
-      this.view.setFloat64(this.pos, number, false)
-    })
+    this.ensureEnoughSpace(8)
+    this.view.setFloat64(this.pos, number, false)
+    this.pos += 8
   }
 }
