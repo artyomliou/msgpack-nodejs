@@ -24,7 +24,7 @@ import {
   BIN16_PREFIX,
   BIN32_PREFIX,
 } from "../../src/constant"
-import { EncodableValue } from "../../src/types"
+import { DecodeOutput, EncodableValue } from "../../src/types"
 
 interface TestCase {
   title: string
@@ -35,6 +35,7 @@ interface TestCase {
 interface Data {
   value: EncodableValue
   encoded: Uint8Array
+  decoderExpected?: DecodeOutput
 }
 
 function arrayRepeat<T>(array: T[], length: number): T[] {
@@ -384,8 +385,12 @@ export default [
     title: "timestamp 32",
     data: [
       {
-        value: new Date(2022, 1, 1, 1, 1, 1, 0),
-        encoded: Uint8Array.of(FIXEXT4_PREFIX, 0xff, 0x61, 0xf8, 0x15, 0xcd),
+        value: new Date(1970, 0, 1, 0, 0, 0, 0),
+        encoded: Uint8Array.of(FIXEXT4_PREFIX, 0xff, 0x0, 0x0, 0x0, 0x0),
+      },
+      {
+        value: new Date(2106, 1, 7, 6, 28, 15, 0),
+        encoded: Uint8Array.of(FIXEXT4_PREFIX, 0xff, 0xff, 0xff, 0xff, 0xff),
       },
     ],
   },
@@ -393,7 +398,7 @@ export default [
     title: "timestamp 64",
     data: [
       {
-        value: new Date(1970, 7, 1, 0, 0, 1, 1),
+        value: new Date(1970, 0, 1, 0, 0, 0, 1),
         encoded: Uint8Array.of(
           FIXEXT8_PREFIX,
           0xff,
@@ -401,25 +406,25 @@ export default [
           0x3d,
           0x9,
           0x0,
-          0x1,
-          0x17,
-          0xd,
-          0x81
+          0x0,
+          0x0,
+          0x0,
+          0x0
         ),
       },
       {
-        value: new Date(2077, 0, 1, 0, 0, 1, 1),
+        value: new Date(2514, 4, 30, 1, 53, 3, 0),
         encoded: Uint8Array.of(
           FIXEXT8_PREFIX,
           0xff,
           0x0,
-          0x3d,
-          0x9,
           0x0,
-          0xc9,
-          0x43,
-          0xae,
-          0x81
+          0x0,
+          0x3,
+          0xff,
+          0xff,
+          0xff,
+          0xff
         ),
       },
     ],
@@ -428,7 +433,7 @@ export default [
     title: "timestamp 96",
     data: [
       {
-        value: new Date(2600, 0),
+        value: new Date(2600, 0, 1, 0, 0, 0, 0),
         encoded: Uint8Array.of(
           EXT8_PREFIX,
           0xc,
@@ -443,12 +448,12 @@ export default [
           0x4,
           0xa0,
           0xfe,
-          0x2,
-          0x0
+          0x72,
+          0x80
         ),
       },
       {
-        value: new Date(1800, 0),
+        value: new Date(-2600, 0, 1, 0, 0, 0, 0),
         encoded: Uint8Array.of(
           EXT8_PREFIX,
           0xc,
@@ -460,58 +465,68 @@ export default [
           0xff,
           0xff,
           0xff,
-          0xfe,
-          0xc0,
-          0x3d,
-          0x4d,
-          0x98
-        ),
-      },
-      {
-        value: new Date(0, 0),
-        encoded: Uint8Array.of(
-          EXT8_PREFIX,
-          0xc,
-          0xff,
-          0x0,
-          0x0,
-          0x0,
-          0x0,
-          0xff,
-          0xff,
-          0xff,
-          0xff,
-          0x7c,
-          0x55,
-          0x11,
-          0x0
-        ),
-      },
-      {
-        value: new Date(-1, 0),
-        encoded: Uint8Array.of(
-          EXT8_PREFIX,
-          0xc,
-          0xff,
-          0x0,
-          0x0,
-          0x0,
-          0x0,
-          0xff,
-          0xff,
-          0xff,
-          0xf1,
-          0x84,
-          0xa9,
           0xde,
-          0x98
+          0x6c,
+          0x19,
+          0xe7,
+          0x0
         ),
       },
     ],
   },
   {
     title: "fixmap",
-    data: [{ value: {}, encoded: Uint8Array.of(0x80) }],
+    data: [
+      { value: {}, encoded: Uint8Array.of(0x80) },
+      {
+        value: { compact: true, schema: 0 },
+        encoded: Uint8Array.of(
+          0x82,
+          0xa7,
+          0x63,
+          0x6f,
+          0x6d,
+          0x70,
+          0x61,
+          0x63,
+          0x74,
+          0xc3,
+          0xa6,
+          0x73,
+          0x63,
+          0x68,
+          0x65,
+          0x6d,
+          0x61,
+          0x00
+        ),
+      },
+      { value: new Map(), encoded: Uint8Array.of(0x80), decoderExpected: {} },
+      {
+        value: new Map().set("compact", true).set("schema", 0),
+        encoded: Uint8Array.of(
+          0x82,
+          0xa7,
+          0x63,
+          0x6f,
+          0x6d,
+          0x70,
+          0x61,
+          0x63,
+          0x74,
+          0xc3,
+          0xa6,
+          0x73,
+          0x63,
+          0x68,
+          0x65,
+          0x6d,
+          0x61,
+          0x00
+        ),
+        decoderExpected: { compact: true, schema: 0 },
+      },
+    ],
   },
   // TODO map 16
   // TODO map 32

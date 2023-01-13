@@ -4,4 +4,5 @@ module.exports = {
   moduleNameMapper: {
     "^(\\.{1,2}/.*)\\.js$": "$1",
   },
+  globalSetup: "./jest.global-setup.js",
 }

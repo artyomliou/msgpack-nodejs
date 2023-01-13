@@ -41,7 +41,7 @@ import { Options } from "../options.js"
  * Opt in caches
  */
 const mapKeyCache = new LruCache<string>("Map-key LruCache", 30)
-const stringCache = new LruCache<string>("String LruCache", 100)
+const stringCache = new LruCache<string>("String LruCache", 100).noRareKeys()
 let mapkeyCacheEnabled = true
 let stringCacheEnabled = true
 
@@ -283,52 +283,45 @@ function encodeMap(byteArray: ByteArray, mapSize: number): void {
 }
 
 function encodeExt(byteArray: ByteArray, type: number, data: Uint8Array): void {
-  const byteLength = data.byteLength
+  const dataByte = data.byteLength
 
   let firstByte: number | undefined
-  let byteLengthLength = 0
-  let byteLengthPos: number | undefined
+  let dataByteLength: number | undefined
 
-  if (byteLength === 1) {
+  if (dataByte === 1) {
     firstByte = FIXEXT1_PREFIX
-  } else if (byteLength === 2) {
+  } else if (dataByte === 2) {
     firstByte = FIXEXT2_PREFIX
-  } else if (byteLength === 4) {
+  } else if (dataByte === 4) {
     firstByte = FIXEXT4_PREFIX
-  } else if (byteLength === 8) {
+  } else if (dataByte === 8) {
     firstByte = FIXEXT8_PREFIX
-  } else if (byteLength === 16) {
+  } else if (dataByte === 16) {
     firstByte = FIXEXT16_PREFIX
-  } else if (byteLength <= 0xff) {
+  } else if (dataByte <= 0xff) {
     // ext 8
     firstByte = EXT8_PREFIX
-    byteLengthLength = 1
-    byteLengthPos = 1
-  } else if (byteLength <= 0xffff) {
+    dataByteLength = 1
+  } else if (dataByte <= 0xffff) {
     // ext 16
     firstByte = EXT16_PREFIX
-    byteLengthLength = 2
-    byteLengthPos = 1
-  } else if (byteLength <= 0xffffffff) {
+    dataByteLength = 2
+  } else if (dataByte <= 0xffffffff) {
     // ext 32
     firstByte = EXT32_PREFIX
-    byteLengthLength = 4
-    byteLengthPos = 1
+    dataByteLength = 4
   } else {
     throw new Error("Ext does not support data exceeding 2**32-1 bytes.")
   }
 
   byteArray.writeUint8(firstByte)
-  if (
-    typeof byteLengthPos !== "undefined" &&
-    typeof byteLengthLength !== "undefined"
-  ) {
-    if (byteLengthLength === 1) {
-      byteArray.writeUint8(byteLength)
-    } else if (byteLengthLength === 2) {
-      byteArray.writeUint16(byteLength)
+  if (typeof dataByteLength !== "undefined") {
+    if (dataByteLength === 1) {
+      byteArray.writeUint8(dataByte)
+    } else if (dataByteLength === 2) {
+      byteArray.writeUint16(dataByte)
     } else {
-      byteArray.writeUint32(byteLength)
+      byteArray.writeUint32(dataByte)
     }
   }
   byteArray.writeInt8(type)

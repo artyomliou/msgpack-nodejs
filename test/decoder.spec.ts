@@ -6,7 +6,10 @@ describe("Decoder", () => {
   for (const test of testCases) {
     it(test.title, () => {
       for (const datum of test.data) {
-        assert.deepStrictEqual(decode(datum.encoded), datum.value)
+        assert.deepStrictEqual(
+          decode(datum.encoded),
+          datum.decoderExpected || datum.value
+        )
       }
     })
   }

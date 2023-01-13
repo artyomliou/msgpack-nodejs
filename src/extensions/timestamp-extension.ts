@@ -17,17 +17,16 @@ const ext: CustomExtension<Date> = {
       throw new Error("Nanoseconds cannot be larger than 999999999.")
     }
 
-    if (time.sec >= 0 && time.sec <= 0xffffffff) {
-      // (data64 & 0xffffffff00000000L == 0)
-      // It is basically doing masking on the data64 variable, which only keep nsec, and decide if it equals to 0.
-      if (time.nsec === 0) {
+    if (0 <= time.sec && time.sec <= 0x3ffffffff) {
+      const data64 = (BigInt(time.nsec) << 34n) | BigInt(time.sec)
+      // Ensure that second uses at most 32 bits & nsec equals to 0
+      if ((data64 & 0xffffffff00000000n) === 0n) {
         // timestamp 32
         const view = new DataView(new ArrayBuffer(4))
-        view.setUint32(0, Number(time.sec), false) // unsigned
+        view.setUint32(0, time.sec, false) // unsigned
         return new Uint8Array(view.buffer)
       } else {
         // timestamp 64
-        const data64 = (BigInt(time.nsec) << 34n) + BigInt(time.sec)
         const view = new DataView(new ArrayBuffer(8))
         view.setBigUint64(0, data64, false) // unsigned
         return new Uint8Array(view.buffer)
