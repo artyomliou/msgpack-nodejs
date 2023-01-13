@@ -12,13 +12,14 @@ The purpose behind is learning by doing, which focuses on modern tools/technique
 # Contents
 
 - [Usage](#usage)
-  - [API](#api)
   - [Examples](#examples)
+  - [API](#api)
+  - [Options](#options)
 - [Project status](#project-status)
   - [Compability](#compability)
-  - [Benchmark](#benchmark)
   - [Limitation](#limitation)
   - [TODO](#todo)
+  - [Benchmark](#benchmark)
 - [Implementation detail](#implementation-detail)
   - [Encode](#encode)
   - [Decode](#decode)
@@ -31,86 +32,42 @@ The purpose behind is learning by doing, which focuses on modern tools/technique
 
 ```bash
 npm i msgpack-nodejs
-
-# Optional
 npm test
 ```
+
+## Example
+
+Please check [example.md](example.md)
 
 ## API
 
 1. [encode()](src/encoder/encoder.ts): `any` => `Uint8Array`
 2. [decode()](src/decoder/decoder.ts): `Uint8Array` => `Exclude<any, Map>`
 3. [EncodeStream class](src/streams/encode-stream.ts): `Exclude<any, null>` => `Buffer`
-4. [DecodeStream class](src/streams/decode-stream.ts): `Buffer` => `Exclude<any, null>` <br> _Sometimes you may encounter error after you attached another stream that does not expect a object as its input._
-5. [registerExtension()](src/extensions/registry.ts)
-6. [CustomExtension type](src/extensions/interface.ts)
-7. [getExtension()](src/extensions/registry.ts): Get extension with type (number) or class constructor (function)
-8. [applyOptions](src/options.ts): Let you control whether to cache string or not
+4. [DecodeStream class](src/streams/decode-stream.ts): `Buffer` => `Exclude<any, null>` [^1]
+5. [registerExtension()](src/extensions/registry.ts): Register your own extension
+6. [lruCacheStat()](src/encoder/lru-cache.ts): Show cache hit/miss count
+7. [bufferAllocatorStat()](src/encoder/byte-array.ts): Show how byte-array allocate new buffer
+8. [prefixTrieStat()](src/decoder/prefix-trie.ts): Show prefix-trie hit/miss count
+9. [applyOptions()](src/options.ts): Manually control caching
 
-## Examples
+[^1]: After attaching another stream that does not expect a object as its input, you may encounter error
 
-### Encode / Decode
+## Options
 
-```javascript
-import { encode, decode } from "msgpack-nodejs"
-console.log(encode({ compact: true, schema: 0 }))
-console.log(
-  decode(
-    Uint8Array.of(
-      0x82,
-      0xa7,
-      0x63,
-      0x6f,
-      0x6d,
-      0x70,
-      0x61,
-      0x63,
-      0x74,
-      0xc3,
-      0xa6,
-      0x73,
-      0x63,
-      0x68,
-      0x65,
-      0x6d,
-      0x61,
-      0x00
-    )
-  )
-)
-```
+You can apply options [like this](example.md#apply-options)
 
-### Stream
-
-Example below demostrates how to put these stream together.
-You can find separate usage at [EncodeStream.spec.ts](test/encode-stream.spec.ts) or [DecodeStream.spec.ts](test/decode-stream.spec.ts)
-
-```javascript
-import { EncodeStream, DecodeStream } from "msgpack-nodejs"
-import { Writable } from "node:stream"
-
-// Declare streams
-const encodeStream = new EncodeStream()
-const decodeStream = new DecodeStream()
-const outStream = new Writable({
-  objectMode: true,
-  write(chunk, encoding, callback) {
-    console.log(chunk)
-    callback()
-  },
-})
-encodeStream.pipe(decodeStream).pipe(outStream)
-
-// Write data into first encodeStream
-encodeStream.write({ compact: true, schema: 0 })
-```
-
-### Custom extension
-
-You can register extension, with a number (0 ~ 127) as its type, and a object constructor that encoder and decoder will use.
-
-- [Example](test/extension.spec.ts)
-- [Built-in Date() extension](src/extensions/timestamp-extension.ts)
+| Key                               | type    | default | Description                                                                                                                    |
+| --------------------------------- | ------- | :-----: | ------------------------------------------------------------------------------------------------------------------------------ |
+| encoder.mapKeyCache.enabled       | boolean |  true   | Cache map-key or not                                                                                                           |
+| encoder.mapKeyCache.size          | number  |   30    | How big is the mapKeyCache                                                                                                     |
+| encoder.stringCache.enabled       | boolean |  true   | Cache any string except map-key or not                                                                                         |
+| encoder.stringCache.size          | number  |   100   | How big is the stringCache                                                                                                     |
+| encoder.byteArray.base            | number  |  1024   | How many bytes will be allocated for every execution. Setting this would increase performance when handling many big JSON data |
+| decoder.shortStringCache.enabled  | boolean |  true   | Use prefix-trie or not                                                                                                         |
+| decoder.shortStringCache.lessThan | number  |   10    | Only cache if string is shorter than this value                                                                                |
+| decoder.jsUtf8Decode.enabled      | boolean |  true   | Use JS utf8-decode or not                                                                                                      |
+| decoder.jsUtf8Decode.lessThan     | number  |   200   | Only use JS utf8-decode if string is shorter than this value                                                                   |
 
 ---
 
@@ -120,9 +77,19 @@ You can register extension, with a number (0 ~ 127) as its type, and a object co
 
 | Env        | Executable? |
 | ---------- | ----------- |
+| Node.js 18 | ✅          |
 | Node.js 16 | ✅          |
 | Node.js 14 | ✅          |
 | Node.js 12 | ❌          |
+
+## Limitation
+
+1. Does not support float 32 encoding, because Javascript float is always 64-bit.
+
+## TODO
+
+1. Ext tests
+2. Map 16/32 tests
 
 ## Benchmark
 
@@ -150,15 +117,6 @@ Runs on node.js 16 & R5-5625U.
 | obj = require("msgpack-unpack").decode(buf);              |  161600 | 5001 |  32313 |
 | **buf = require("msgpack-nodejs").encode(obj);**          | 1075500 | 5000 | 215100 |
 | **obj = require("msgpack-nodejs").decode(buf);**          |  621700 | 5000 | 124340 |
-
-## Limitation
-
-1. Ext family does not have complete test cases for now.
-2. Does not support float 32 encoding, because Javascript float is always 64-bit.
-
-## TODO
-
-1. Ext family fully tested
 
 ---
 
