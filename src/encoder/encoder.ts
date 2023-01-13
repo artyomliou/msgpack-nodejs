@@ -72,75 +72,52 @@ export default function msgPackEncode(src: EncodableValue): Uint8Array {
   return byteArray.getBuffer()
 }
 
+function isPlainObject(value: unknown): value is Object {
+  return value?.constructor === Object
+}
 function match(byteArray: ByteArray, val: EncodableValue): void {
-  if (val === null) {
+  if (typeof val === "string") {
+    encodeString(byteArray, val)
+  } else if (typeof val === "number") {
+    if (Number.isInteger(val)) {
+      encodeInteger(byteArray, val)
+    } else {
+      encodeFloat(byteArray, val)
+    }
+  } else if (val instanceof Array) {
+    encodeArray(byteArray, val.length)
+    for (const element of val) {
+      match(byteArray, element)
+    }
+  } else if (val instanceof Map) {
+    encodeMap(byteArray, val.size)
+    for (const [k, v] of val.entries()) {
+      encodeMapKey(byteArray, k)
+      match(byteArray, v)
+    }
+  } else if (isPlainObject(val)) {
+    encodeMap(byteArray, Object.keys(val).length)
+    for (const [k, v] of Object.entries(val)) {
+      encodeMapKey(byteArray, k)
+      match(byteArray, v)
+    }
+  } else if (val === null) {
     byteArray.writeUint8(NIL)
-    return
-  }
-
-  switch (typeof val) {
-    case "string":
-      encodeString(byteArray, val)
-      return
-
-    case "boolean":
-      byteArray.writeUint8(val ? BOOL_TRUE : BOOL_FALSE)
-      return
-
-    case "bigint":
-      encodeBigint(byteArray, val)
-      return
-
-    case "number":
-      if (Number.isInteger(val)) {
-        encodeInteger(byteArray, val)
-      } else {
-        encodeFloat(byteArray, val)
-      }
-      return
-
-    case "object":
-      if (val instanceof Uint8Array) {
-        encodeBin(byteArray, val)
-        return
-      }
-      if (val instanceof Array) {
-        encodeArray(byteArray, val.length)
-        for (const element of val) {
-          match(byteArray, element)
-        }
-        return
-      }
-
-      // Encode extension
-      if ("constructor" in val) {
-        const ext = getExtension(val.constructor)
-        if (typeof ext !== "undefined") {
-          const array = ext.encode(val)
-          encodeExt(byteArray, ext.type, array)
-          return
-        }
-      }
-
-      // Handling typical object
-      if (val instanceof Map) {
-        encodeMap(byteArray, val.size)
-        for (const [k, v] of val.entries()) {
-          encodeMapKey(byteArray, k)
-          match(byteArray, v)
-        }
-      } else {
-        encodeMap(byteArray, Object.keys(val).length)
-        for (const [k, v] of Object.entries(val)) {
-          encodeMapKey(byteArray, k)
-          match(byteArray, v)
-        }
-      }
-      return
-
-    default:
-      // No support for Symbol, Function, Undefined
-      break
+  } else if (typeof val === "boolean") {
+    byteArray.writeUint8(val ? BOOL_TRUE : BOOL_FALSE)
+  } else if (typeof val === "bigint") {
+    encodeBigint(byteArray, val)
+  } else if (val instanceof Uint8Array) {
+    encodeBin(byteArray, val)
+  } else if (val?.constructor) {
+    // Encode extension
+    const ext = getExtension(val.constructor)
+    if (typeof ext !== "undefined") {
+      const array = ext.encode(val)
+      encodeExt(byteArray, ext.type, array)
+    }
+  } else {
+    throw new Error(`Unsupported value: ${typeof val}.`)
   }
 }
 
@@ -153,7 +130,8 @@ function encodeInteger(byteArray: ByteArray, number: number): void {
     byteArray.writeInt8(number)
   } else if (0 < number) {
     if (number <= 0xff) {
-      byteArray.writeUint8(UINT8_PREFIX, number)
+      byteArray.writeUint8(UINT8_PREFIX)
+      byteArray.writeUint8(number)
     } else if (number <= 0xffff) {
       byteArray.writeUint8(UINT16_PREFIX)
       byteArray.writeUint16(number)
@@ -220,7 +198,8 @@ function writeString(byteArray: ByteArray, buffer: Uint8Array) {
     byteArray.writeUint8(0b10100000 + bytesCount)
     byteArray.append(buffer)
   } else if (bytesCount <= 0xff) {
-    byteArray.writeUint8(STR8_PREFIX, bytesCount)
+    byteArray.writeUint8(STR8_PREFIX)
+    byteArray.writeUint8(bytesCount)
     byteArray.append(buffer)
   } else if (bytesCount <= 0xffff) {
     byteArray.writeUint8(STR16_PREFIX)
@@ -239,7 +218,8 @@ function encodeBin(byteArray: ByteArray, buffer: Uint8Array): void {
   const bytesCount = buffer.byteLength
 
   if (bytesCount <= 0xff) {
-    byteArray.writeUint8(BIN8_PREFIX, bytesCount)
+    byteArray.writeUint8(BIN8_PREFIX)
+    byteArray.writeUint8(bytesCount)
     byteArray.append(buffer)
   } else if (bytesCount <= 0xffff) {
     byteArray.writeUint8(BIN16_PREFIX)
