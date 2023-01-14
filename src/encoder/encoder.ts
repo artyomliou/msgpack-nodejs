@@ -52,7 +52,7 @@ export function optIn(opt: Options) {
     mapkeyCacheEnabled = opt.encoder.mapKeyCache.enabled
   }
   if (typeof opt?.encoder?.mapKeyCache?.size !== "undefined") {
-    mapKeyCache.size = opt.encoder.mapKeyCache.size
+    mapKeyCache.sizeLimit = opt.encoder.mapKeyCache.size
   }
 
   // stringCache
@@ -60,7 +60,7 @@ export function optIn(opt: Options) {
     stringCacheEnabled = opt.encoder.stringCache.enabled
   }
   if (typeof opt?.encoder?.stringCache?.size !== "undefined") {
-    stringCache.size = opt.encoder.stringCache.size
+    stringCache.sizeLimit = opt.encoder.stringCache.size
   }
 }
 
@@ -70,7 +70,7 @@ export function optIn(opt: Options) {
 export default function msgPackEncode(src: EncodableValue): Uint8Array {
   const byteArray = new ByteArray()
   match(byteArray, src)
-  return byteArray.getBuffer()
+  return byteArray.getWrittenBytes()
 }
 
 function isPlainObject(value: unknown): value is Object {

@@ -1,3 +1,12 @@
+// Stat
+
+interface Stat {
+  hit: number
+  missed: number
+  totalRoundTrip: number
+  avgRoundTrip?: number
+}
+const tries: Record<string, PrefixTrie> = {}
 export function prefixTrieStat() {
   const output: Record<string, Stat> = {}
   for (const [name, trie] of Object.entries(tries)) {
@@ -8,17 +17,11 @@ export function prefixTrieStat() {
   }
   return output
 }
-const tries: Record<string, PrefixTrie> = {}
 
+// Prefix trie
 interface Node {
   value: string | null
   [num: number]: Node
-}
-interface Stat {
-  hit: number
-  missed: number
-  totalRoundTrip: number
-  avgRoundTrip?: number
 }
 
 export default class PrefixTrie {

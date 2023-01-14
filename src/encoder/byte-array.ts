@@ -21,6 +21,10 @@ export function optIn(opt: Options) {
     bufferAllocator.base = opt.encoder.byteArray.base
   }
 }
+
+/**
+ * Control buffer allocation for more than one ByteArray
+ */
 const bufferAllocator = {
   base: 1024,
   size(exponent = 0) {
@@ -47,19 +51,13 @@ export default class ByteArray {
     this.pos = 0
   }
 
-  getBuffer(): Uint8Array {
-    if (this.pos > stat.maxOutputSize) {
-      stat.maxOutputSize = this.pos
-    }
-    return this.array.subarray(0, this.pos)
-  }
-
-  private ensureEnoughSpace(byteLength: number): void {
-    const reqSize = this.pos + byteLength
-    if (reqSize >= this.array.byteLength) {
-      let newSize = reqSize
-      while (newSize <= reqSize) {
-        newSize += bufferAllocator.size(this.newBufferExponent++) // Incremental
+  private ensureEnoughSpace(reqSize: number): void {
+    const totalReqSize = this.pos + reqSize
+    if (totalReqSize >= this.array.byteLength) {
+      // Decide how many buffer will be allocated, normally one iteration is enough
+      let newSize = totalReqSize
+      while (newSize <= totalReqSize) {
+        newSize += bufferAllocator.size(this.newBufferExponent++) // exponential
       }
 
       // Create new buffer and copy content from original buffer
@@ -135,5 +133,15 @@ export default class ByteArray {
 
   subarrayBackward(byteLength: number): Uint8Array {
     return this.array.subarray(this.pos - byteLength, this.pos)
+  }
+
+  /**
+   * After writing all encoded data, use this function to create reference to those written bytes in buffer.
+   */
+  getWrittenBytes(): Uint8Array {
+    if (this.pos > stat.maxOutputSize) {
+      stat.maxOutputSize = this.pos
+    }
+    return this.array.subarray(0, this.pos)
   }
 }

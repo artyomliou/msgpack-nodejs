@@ -19,7 +19,7 @@ export class LruCache<K, C = Uint8Array> {
   private cache: Map<K, C> = new Map()
   private rareKeys?: Set<K>
 
-  constructor(public name: string, public size = 30) {
+  constructor(public name: string, public sizeLimit = 30) {
     caches[name] = this
     this.stat = {
       hit: 0,
@@ -55,24 +55,23 @@ export class LruCache<K, C = Uint8Array> {
     if (this.rareKeys) {
       // If this key appears first time, we keep record of it.
       if (!this.rareKeys.has(key)) {
-        this.rareKeys.add(key)
-        // Evict
+        // Evict then insert
         if (this.rareKeys.size >= 500) {
           this.stat.rare += this.rareKeys.size
           this.rareKeys.clear()
         }
+        this.rareKeys.add(key)
         return
       }
-
       // If this key appears second time, we can cache it.
-      this.rareKeys.delete(key)
+      // And dont bother to delete the value in Set
     }
 
     // Cache the value
     this.cache.set(key, val)
 
     // Evict the cache
-    if (this.cache.size >= this.size) {
+    if (this.cache.size >= this.sizeLimit) {
       this.cache.delete(this.cache.keys().next().value)
       this.stat.evicted++
     }
