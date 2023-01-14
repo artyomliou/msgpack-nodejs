@@ -1,6 +1,7 @@
 # msgpack-nodejs
 
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/artyomliou/msgpack-nodejs/node.js.yml)
+![Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/artyomliou/msgpack-nodejs)
 ![node-current](https://img.shields.io/node/v/msgpack-nodejs)
 ![GitHub top language](https://img.shields.io/github/languages/top/artyomliou/msgpack-nodejs)
 ![Lines of code](https://img.shields.io/tokei/lines/github/artyomliou/msgpack-nodejs)
