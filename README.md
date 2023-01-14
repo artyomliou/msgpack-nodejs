@@ -132,7 +132,7 @@ Runs on node.js 16 & laptop with R5-5625U.
 
 ## Decode
 
-[Decoder](src/decoder/decoder.ts) uses [TypedValueResolver](src/decoder/typed-value-resolver.ts) to read every value out, and push them into [StructBuilder](src/decoder/struct-builder.ts) to rebuild whole JSON object. For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [prefix trie](src/decoder/prefix-trie.ts).
+[Decoder](src/decoder/decoder.ts) uses [parseBuffer()](src/decoder/parse-buffer.ts) to read every value out, and push them into [StructBuilder](src/decoder/struct-builder.ts) to rebuild whole JSON object. For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [prefix trie](src/decoder/prefix-trie.ts).
 
 ## Optimization strategies:
 
@@ -145,7 +145,7 @@ And [msgpack/msgpack-javascript](https://github.com/msgpack/msgpack-javascript/b
 - To improve encoding performance, [LruCache](src/encoder/lru-cache.ts) was used for caching encoded string and its header.
 - To improve decoding peformance, [prefix trie](src/decoder/prefix-trie.ts) was deployed for Uint8Array caching.
 - To avoid evicting, map-key caching and string caching were separated.
-- To reduce memory usage, cache [Object/array descriptor](src/decoder/typed-value-resolver.ts#L69-L91)
+- To reduce memory usage, cache [Object/array descriptor](src/decoder/parse-buffer.ts#L69-L91)
 
 ##### ArrayBuffer / TypedArray
 
@@ -156,7 +156,7 @@ And [msgpack/msgpack-javascript](https://github.com/msgpack/msgpack-javascript/b
 ##### Node.js
 
 - To maximize performance of array, [pre-allocated array size](src/decoder/decoder.ts#L11-L12).
-- To maximize performance, use [Generator function](src/decoder/typed-value-resolver.ts)
+- To maximize performance, use [Generator function](src/decoder/parse-buffer.ts)
 - To maximize performance of string encoding, string are encoded in [StringBuffer](src/encoder/encoder.ts) with [encodeInto()](https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encodeInto) to prevent unnecessary copying. Then these encoded content will be referenced by `subarray()` for writing and caching.
 - To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes.
 - To avoid syntax penalty of [private class fields](https://v8.dev/blog/faster-class-features) under node.js 18, use [TypeScript's syntax](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats) instead.

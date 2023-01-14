@@ -1,11 +1,11 @@
 import { optIn as byteArrayOptIn } from "./encoder/byte-array.js"
 import { optIn as encoderOptIn } from "./encoder/encoder.js"
-import { optIn as typedValueResolverOptIn } from "./decoder/typed-value-resolver.js"
+import { optIn as parseBufferOptIn } from "./decoder/parse-buffer.js"
 
 export function applyOptions(opt: Options) {
   byteArrayOptIn(opt)
   encoderOptIn(opt)
-  typedValueResolverOptIn(opt)
+  parseBufferOptIn(opt)
 }
 export type Options = Partial<AvailableOptions>
 interface AvailableOptions {

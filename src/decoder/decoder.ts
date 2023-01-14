@@ -1,7 +1,7 @@
 import parseBuffer, {
   ArrayDescriptor,
   ObjectDescriptor,
-} from "./typed-value-resolver.js"
+} from "./parse-buffer.js"
 import { DecodeOutput } from "../types.js"
 import StructBuilder from "./struct-builder.js"
 
