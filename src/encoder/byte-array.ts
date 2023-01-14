@@ -73,12 +73,6 @@ export default class ByteArray {
     }
   }
 
-  append(array: Uint8Array): void {
-    this.ensureEnoughSpace(array.byteLength)
-    this.array.set(array, this.pos)
-    this.pos += array.byteLength
-  }
-
   writeUint8(number: number): void {
     this.ensureEnoughSpace(1)
     this.view.setUint8(this.pos, number)
@@ -131,5 +125,15 @@ export default class ByteArray {
     this.ensureEnoughSpace(8)
     this.view.setFloat64(this.pos, number, false)
     this.pos += 8
+  }
+
+  append(array: Uint8Array): void {
+    this.ensureEnoughSpace(array.byteLength)
+    this.array.set(array, this.pos)
+    this.pos += array.byteLength
+  }
+
+  subarrayBackward(byteLength: number): Uint8Array {
+    return this.array.subarray(this.pos - byteLength, this.pos)
   }
 }

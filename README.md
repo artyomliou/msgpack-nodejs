@@ -46,10 +46,11 @@ Please check [example.md](example.md)
 3. [EncodeStream class](src/streams/encode-stream.ts): `Exclude<any, null>` => `Buffer`
 4. [DecodeStream class](src/streams/decode-stream.ts): `Buffer` => `Exclude<any, null>` [^1]
 5. [registerExtension()](src/extensions/registry.ts): Register your own extension
-6. [lruCacheStat()](src/encoder/lru-cache.ts): Show cache hit/miss count
-7. [bufferAllocatorStat()](src/encoder/byte-array.ts): Show how byte-array allocate new buffer
-8. [prefixTrieStat()](src/decoder/prefix-trie.ts): Show prefix-trie hit/miss count
-9. [applyOptions()](src/options.ts): Manually control caching
+6. [stringBufferStat()](src/encoder/string-buffer.ts): Show string buffer copied count and size
+7. [lruCacheStat()](src/encoder/lru-cache.ts): Show cache hit/miss count
+8. [bufferAllocatorStat()](src/encoder/byte-array.ts): Show how byte-array allocate new buffer
+9. [prefixTrieStat()](src/decoder/prefix-trie.ts): Show prefix-trie hit/miss count
+10. [applyOptions()](src/options.ts): Manually control caching
 
 [^1]: After attaching another stream that does not expect a object as its input, you may encounter error
 
@@ -96,27 +97,29 @@ You can apply options [like this](example.md#apply-options)
 By utlizing the great [benchmark tool by msgpack-lite](https://github.com/kawanet/msgpack-lite/blob/master/lib/benchmark.js),
 I thought the performance of this project would not be disappointing.
 
-Runs on node.js 16 & R5-5625U.
+Runs on node.js 16 & laptop with R5-5625U.
 
-| operation                                                 |      op |   ms |   op/s |
-| --------------------------------------------------------- | ------: | ---: | -----: |
-| buf = Buffer(JSON.stringify(obj));                        | 1001100 | 5000 | 200220 |
-| obj = JSON.parse(buf);                                    | 1260300 | 5000 | 252060 |
-| buf = require("msgpack-lite").encode(obj);                |  671400 | 5000 | 134280 |
-| obj = require("msgpack-lite").decode(buf);                |  392800 | 5001 |  78544 |
-| buf = Buffer(require("msgpack.codec").msgpack.pack(obj)); |  698900 | 5000 | 139780 |
-| obj = require("msgpack.codec").msgpack.unpack(buf);       |  391700 | 5000 |  78340 |
-| buf = require("msgpack-js-v5").encode(obj);               |  276800 | 5001 |  55348 |
-| obj = require("msgpack-js-v5").decode(buf);               |  526600 | 5000 | 105320 |
-| buf = require("msgpack-js").encode(obj);                  |  270200 | 5000 |  54040 |
-| obj = require("msgpack-js").decode(buf);                  |  542700 | 5000 | 108540 |
-| buf = require("msgpack5")().encode(obj);                  |  145300 | 5000 |  29060 |
-| obj = require("msgpack5")().decode(buf);                  |  243200 | 5000 |  48640 |
-| buf = require("notepack").encode(obj);                    | 1104300 | 5000 | 220860 |
-| obj = require("notepack").decode(buf);                    |  670300 | 5000 | 134060 |
-| obj = require("msgpack-unpack").decode(buf);              |  161600 | 5001 |  32313 |
-| **buf = require("msgpack-nodejs").encode(obj);**          | 1075500 | 5000 | 215100 |
-| **obj = require("msgpack-nodejs").decode(buf);**          |  621700 | 5000 | 124340 |
+| operation                                                          |      op |   ms |       op/s |
+| ------------------------------------------------------------------ | ------: | ---: | ---------: |
+| buf = Buffer(JSON.stringify(obj));                                 |  999100 | 5000 |     199820 |
+| obj = JSON.parse(buf);                                             | 1274300 | 5000 |     254860 |
+| buf = require("msgpack-lite").encode(obj);                         |  655000 | 5000 |     131000 |
+| obj = require("msgpack-lite").decode(buf);                         |  393500 | 5000 |      78700 |
+| buf = Buffer(require("msgpack.codec").msgpack.pack(obj));          |  715000 | 5000 |     143000 |
+| obj = require("msgpack.codec").msgpack.unpack(buf);                |  400800 | 5000 |      80160 |
+| buf = require("msgpack-js-v5").encode(obj);                        |  278600 | 5001 |      55708 |
+| obj = require("msgpack-js-v5").decode(buf);                        |  540900 | 5000 |     108180 |
+| buf = require("msgpack-js").encode(obj);                           |  268600 | 5000 |      53720 |
+| obj = require("msgpack-js").decode(buf);                           |  554400 | 5000 |     110880 |
+| buf = require("msgpack5")().encode(obj);                           |  145800 | 5001 |      29154 |
+| obj = require("msgpack5")().decode(buf);                           |  235600 | 5000 |      47120 |
+| buf = require("notepack").encode(obj);                             | 1057300 | 5000 |     211460 |
+| obj = require("notepack").decode(buf);                             |  653200 | 5000 |     130639 |
+| obj = require("msgpack-unpack").decode(buf);                       |  165600 | 5002 |      33106 |
+| **buf = require("msgpack-nodejs").encode(obj);** (Run in sequence) | 1100700 | 5000 | **220140** |
+| **obj = require("msgpack-nodejs").decode(buf);** (Run in sequence) |  629100 | 5000 | **125820** |
+| **buf = require("msgpack-nodejs").encode(obj);** (Run exclusively) | 1325000 | 5000 | **265000** |
+| **obj = require("msgpack-nodejs").decode(buf);** (Run exclusively) |  622800 | 5000 | **124560** |
 
 ---
 
@@ -130,14 +133,15 @@ Runs on node.js 16 & R5-5625U.
 
 [Decoder](src/decoder/decoder.ts) uses [TypedValueResolver](src/decoder/typed-value-resolver.ts) to read every value out, and push them into [StructBuilder](src/decoder/struct-builder.ts) to rebuild whole JSON object. For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [prefix trie](src/decoder/prefix-trie.ts).
 
-#### Optimization strategies:
+## Optimization strategies:
 
 Thanks to [AppSpector](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times), this article gives very practical advices.  
 And [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) for better buffer allocation strategy.
+And [msgpack/msgpack-javascript](https://github.com/msgpack/msgpack-javascript/blob/da998c654fbba8952c49ec407c554cc7400b36ac/src/Encoder.ts#L178-L195) for the technique combination of calculating UTF-8 representation bytes and `encodeInto()`.
 
 ##### Cache
 
-- To improve encoding performance, [LruCache](src/encoder/lru-cache.ts) was deployed.
+- To improve encoding performance, [LruCache](src/encoder/lru-cache.ts) was used for caching encoded string and its header.
 - To improve decoding peformance, [prefix trie](src/decoder/prefix-trie.ts) was deployed for Uint8Array caching.
 - To avoid evicting, map-key caching and string caching were separated.
 - To reduce memory usage, cache [Object/array descriptor](src/decoder/typed-value-resolver.ts#L69-L91)
@@ -152,6 +156,7 @@ And [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L
 
 - To maximize performance of array, [pre-allocated array size](src/decoder/decoder.ts#L11-L12).
 - To maximize performance, use [Generator function](src/decoder/typed-value-resolver.ts)
+- To maximize performance of string encoding, string are encoded in [StringBuffer](src/encoder/encoder.ts) with [encodeInto()](https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encodeInto) to prevent unnecessary copying. Then these encoded content will be referenced by `subarray()` for writing and caching.
 - To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes.
 - To avoid syntax penalty of [private class fields](https://v8.dev/blog/faster-class-features) under node.js 18, use [TypeScript's syntax](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats) instead.
 

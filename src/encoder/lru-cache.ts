@@ -29,8 +29,15 @@ export class LruCache<K, C = Uint8Array> {
     }
   }
 
-  remember(key: K, cb: CallableFunction): C {
-    let val = this.cache.get(key)
+  noRareKeys() {
+    if (!this.rareKeys) {
+      this.rareKeys = new Set()
+    }
+    return this
+  }
+
+  get(key: K): C | undefined {
+    const val = this.cache.get(key)
     if (typeof val !== "undefined") {
       // Move to last
       this.cache.delete(key)
@@ -39,6 +46,11 @@ export class LruCache<K, C = Uint8Array> {
       return val
     }
 
+    this.stat.missed++
+    return undefined
+  }
+
+  set(key: K, val: C): void {
     // Prevent rare keys
     if (this.rareKeys) {
       // If this key appears first time, we keep record of it.
@@ -49,7 +61,7 @@ export class LruCache<K, C = Uint8Array> {
           this.stat.rare += this.rareKeys.size
           this.rareKeys.clear()
         }
-        return cb(key) as C
+        return
       }
 
       // If this key appears second time, we can cache it.
@@ -57,23 +69,12 @@ export class LruCache<K, C = Uint8Array> {
     }
 
     // Cache the value
-    val = cb(key) as C
     this.cache.set(key, val)
-    this.stat.missed++
 
     // Evict the cache
     if (this.cache.size >= this.size) {
       this.cache.delete(this.cache.keys().next().value)
       this.stat.evicted++
     }
-
-    return val
-  }
-
-  noRareKeys() {
-    if (!this.rareKeys) {
-      this.rareKeys = new Set()
-    }
-    return this
   }
 }

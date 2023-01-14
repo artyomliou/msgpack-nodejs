@@ -1,5 +1,5 @@
 /**
- * My UTF-8 decoding implementation
+ * Decode UTF-8 bytes to code point
  * Inspired by https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times
  * Follow instruction by https://zh.wikipedia.org/wiki/UTF-8#UTF-8%E7%9A%84%E7%B7%A8%E7%A2%BC%E6%96%B9%E5%BC%8F
  */

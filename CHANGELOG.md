@@ -1,5 +1,11 @@
 # Versions
 
+## 1.3.8
+
+- optimize(encoder): encode string in specific buffer
+- optimize(encoder): cache header and encoded at once
+- optimize(encoder): disabled noRareKeys() because of its cost
+
 ## 1.3.7
 
 - feat: more available options

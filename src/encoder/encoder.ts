@@ -36,12 +36,13 @@ import { EncodableValue } from "../types.js"
 import { getExtension } from "../extensions/registry.js"
 import { LruCache } from "./lru-cache.js"
 import { Options } from "../options.js"
+import { stringBuffer } from "./string-buffer.js"
 
 /**
  * Opt in caches
  */
 const mapKeyCache = new LruCache<string>("Map-key LruCache", 30)
-const stringCache = new LruCache<string>("String LruCache", 100).noRareKeys()
+const stringCache = new LruCache<string>("String LruCache", 100)
 let mapkeyCacheEnabled = true
 let stringCacheEnabled = true
 
@@ -175,40 +176,70 @@ function encodeFloat(byteArray: ByteArray, number: number): void {
   byteArray.writeFloat64(number)
 }
 
-const textEncoder = new TextEncoder()
 function encodeMapKey(byteArray: ByteArray, string: string): void {
-  const buffer = mapkeyCacheEnabled
-    ? mapKeyCache.remember(string, (str: string) => textEncoder.encode(str))
-    : textEncoder.encode(string)
+  // If cache is enabled and hit, the cost of encoding, copying between buffer can be save
+  if (mapkeyCacheEnabled) {
+    const buffer = mapKeyCache.get(string)
+    if (buffer) {
+      byteArray.append(buffer)
+      return
+    }
+  }
 
-  writeString(byteArray, buffer)
+  // If cache is not enabled / cache is not hit
+  const encoded = stringBuffer.encodeString(string)
+  const headerBytes = writeStringHeader(byteArray, encoded.byteLength)
+  byteArray.append(encoded)
+
+  // Cache header and encoded string at once
+  if (mapkeyCacheEnabled) {
+    mapKeyCache.set(
+      string,
+      byteArray.subarrayBackward(headerBytes + encoded.byteLength)
+    )
+  }
 }
 
 function encodeString(byteArray: ByteArray, string: string): void {
-  const buffer = stringCacheEnabled
-    ? stringCache.remember(string, (str: string) => textEncoder.encode(str))
-    : textEncoder.encode(string)
+  // If cache is enabled and hit, the cost of encoding, copying between buffer can be save
+  if (stringCacheEnabled) {
+    const buffer = stringCache.get(string)
+    if (buffer) {
+      byteArray.append(buffer)
+      return
+    }
+  }
 
-  writeString(byteArray, buffer)
+  // If cache is not enabled / cache is not hit
+  const encoded = stringBuffer.encodeString(string)
+  const headerBytes = writeStringHeader(byteArray, encoded.byteLength)
+  byteArray.append(encoded)
+
+  // Cache header and encoded string at once
+  if (stringCacheEnabled) {
+    stringCache.set(
+      string,
+      byteArray.subarrayBackward(headerBytes + encoded.byteLength)
+    )
+  }
 }
 
-function writeString(byteArray: ByteArray, buffer: Uint8Array) {
-  const bytesCount = buffer.byteLength
-  if (bytesCount <= 31) {
-    byteArray.writeUint8(0b10100000 + bytesCount)
-    byteArray.append(buffer)
-  } else if (bytesCount <= 0xff) {
+function writeStringHeader(byteArray: ByteArray, utf8ByteCount: number) {
+  if (utf8ByteCount <= 31) {
+    byteArray.writeUint8(0b10100000 + utf8ByteCount)
+    return 1
+  } else if (utf8ByteCount <= 0xff) {
     byteArray.writeUint8(STR8_PREFIX)
-    byteArray.writeUint8(bytesCount)
-    byteArray.append(buffer)
-  } else if (bytesCount <= 0xffff) {
+    byteArray.writeUint8(utf8ByteCount)
+    return 2
+  } else if (utf8ByteCount <= 0xffff) {
     byteArray.writeUint8(STR16_PREFIX)
-    byteArray.writeUint16(bytesCount)
-    byteArray.append(buffer)
-  } else if (bytesCount <= 0xffffffff) {
+    byteArray.writeUint16(utf8ByteCount)
+    return 3
+  } else if (utf8ByteCount <= 0xffffffff) {
     byteArray.writeUint8(STR32_PREFIX)
-    byteArray.writeUint32(bytesCount)
-    byteArray.append(buffer)
+    byteArray.writeUint32(utf8ByteCount)
+    return 5
   } else {
     throw new Error("String's length cannot exceed (2^32)-1.")
   }
