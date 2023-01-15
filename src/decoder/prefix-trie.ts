@@ -1,12 +1,13 @@
 // Stat
-
 interface Stat {
   hit: number
   missed: number
   totalRoundTrip: number
   avgRoundTrip?: number
 }
+
 const tries: Record<string, PrefixTrie> = {}
+
 export function prefixTrieStat() {
   const output: Record<string, Stat> = {}
   for (const [name, trie] of Object.entries(tries)) {

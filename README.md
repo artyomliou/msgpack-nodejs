@@ -136,10 +136,6 @@ Runs on node.js 16 & laptop with R5-5625U.
 
 ## Optimization strategies:
 
-Thanks to [AppSpector](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times), this article gives very practical advices.  
-And [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) for better buffer allocation strategy.
-And [msgpack/msgpack-javascript](https://github.com/msgpack/msgpack-javascript/blob/da998c654fbba8952c49ec407c554cc7400b36ac/src/Encoder.ts#L178-L195) for the technique combination of calculating UTF-8 representation bytes and `encodeInto()`.
-
 ##### Cache
 
 - To improve encoding performance, [LruCache](src/encoder/lru-cache.ts) was used for caching encoded string and its header.
@@ -149,44 +145,51 @@ And [msgpack/msgpack-javascript](https://github.com/msgpack/msgpack-javascript/b
 
 ##### ArrayBuffer / TypedArray
 
-- To efficiently allocate new buffer, every [ByteArray](src/encoder/byte-array.ts) begins with small buffer (1K).
+- To efficiently allocate new buffer, every [ByteArray](src/encoder/byte-array.ts) begins with small buffer (1K). [^2]
 - To efficiently handle unpredictable large JSON, [ByteArray](src/encoder/byte-array.ts) allocates exponentially.
 - To avoid overhead on writing, [ByteArray](src/encoder/byte-array.ts) uses [`DataView` calls](https://v8.dev/blog/dataview) as much as possible.
 
 ##### Node.js
 
-- To maximize performance of array, [pre-allocated array size](src/decoder/decoder.ts#L11-L12).
-- To maximize performance, use [Generator function](src/decoder/parse-buffer.ts)
-- To maximize performance of string encoding, string are encoded in [StringBuffer](src/encoder/encoder.ts) with [encodeInto()](https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encodeInto) to prevent unnecessary copying. Then these encoded content will be referenced by `subarray()` for writing and caching.
-- To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes.
+- To maximize performance of array, use [pre-allocated array](src/decoder/decoder.ts#L11-L12). [^3]
+- To maximize performance, use [generator function](src/decoder/parse-buffer.ts)
+- To maximize performance of string encoding, string are encoded in [StringBuffer](src/encoder/string-buffer.ts) with [encodeInto()](https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encodeInto) to prevent unnecessary copying. Then these encoded content will be referenced by `subarray()` for writing and caching. [^4]
+- To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes. [^2]
 - To avoid syntax penalty of [private class fields](https://v8.dev/blog/faster-class-features) under node.js 18, use [TypeScript's syntax](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats) instead.
 
 ## Lessons learned
 
 - Javascript
-  - The difference between [ArrayBuffer](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/ArrayBuffer), [TypedArray](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/TypedArray) and the node.js API [Buffer](https://nodejs.org/api/buffer.html)
-  - [BigInt operators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#operators)
-  - The limitation of JS [left shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift) and [right shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift)
-  - [Private class features](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_class_fields)
-  - The performance benefit of better buffer allocation strategy
-  - [Pre-allocated size](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times)
-  - [UTF-8 dncoding/decoding](https://zh.wikipedia.org/zh-tw/UTF-8#UTF-8%E7%9A%84%E7%B7%A8%E7%A2%BC%E6%96%B9%E5%BC%8F)
+  - The difference between `ArrayBuffer`, `TypedArray` and the node.js API `Buffer` [^5]
+  - `BigInt` operators [^6]
+  - `left shift` and `right shift` [^7] [^8]
+  - Private class features [^9]
+  - Pre-allocated array [^2]
+  - UTF-8 encoding/decoding [^10]
+  - Node.js transform stream [^11]
 - Node.js
-  - [Profiler](https://nodejs.org/en/docs/guides/simple-profiling/)
-- [Typescript](https://www.typescriptlang.org/cheatsheets)
-  - Testing - [ts-jest](https://kulshekhar.github.io/ts-jest/docs/guides/esm-support)
-  - Linter - [typescript-eslint](https://github.com/typescript-eslint/typescript-eslint) & [lint-staged](https://github.com/okonet/lint-staged)
-  - Packaging for ESModule & CommonJS
+  - Profiler [^12]
+- Typescript
+  - Testing - ts-jest [^13]
+  - Linter - typescript-eslint & lint-staged [^14]
+  - Packaging for ESModule & CommonJS [^15]
 - CI & CD
-  - [Github Actions](https://github.com/artyomliou/msgpack-nodejs/actions)
+  - Github Actions [^16]
 
 ---
 
-# References
-
-- [[JS] TypedArray, ArrayBuffer 和 DataView](https://pjchender.dev/javascript/js-typedarray-buffer-dataview/)
-- [使用 ESLint, Prettier, Husky, Lint-staged 以及 Commitizen 提升專案品質及一致性](https://medium.com/@danielhu95/set-up-eslint-pipeline-zh-tw-990d7d9eb68e)
-- [samerbuna/efficient-node](https://github.com/samerbuna/efficient-node/blob/main/400-node-streams.adoc)
-- [Best practices for creating a modern npm package](https://snyk.io/blog/best-practices-create-modern-npm-package/)
-- [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657)
-- [How to improve MessagePack JavaScript decoder speed by 2.6 times.](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times)
+[^2]: Thanks to [kriszyp/msgpackr](https://github.com/kriszyp/msgpackr/blob/master/pack.js#L636-L657) for inspiration of better buffer allocation strategy.
+[^3]: Thanks to [AppSpector](https://appspector.com/blog/how-to-improve-messagepack-javascript-parsing-speed-by-2-6-times), this article gives very practical advices including pre-allocated array and manual decoding under 200 characters.
+[^4]: Thanks to [msgpack/msgpack-javascript](https://github.com/msgpack/msgpack-javascript/blob/da998c654fbba8952c49ec407c554cc7400b36ac/src/Encoder.ts#L178-L195) for technique including UTF-8 bytes calculation and usage of `encodeInto()`, which led me to the ultra optimization strategy.
+[^5]: [[JS] TypedArray, ArrayBuffer 和 DataView](https://pjchender.dev/javascript/js-typedarray-buffer-dataview/)
+[^6]: [BigInt operators](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/BigInt#operators)
+[^7]: [left shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Left_shift)
+[^8]: [right shift](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Right_shift)
+[^9]: [Private class features](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Classes/Private_class_fields)
+[^10]: [UTF-8 encoding/decoding](https://zh.wikipedia.org/zh-tw/UTF-8#UTF-8%E7%9A%84%E7%B7%A8%E7%A2%BC%E6%96%B9%E5%BC%8F)
+[^11]: [samerbuna/efficient-node](https://github.com/samerbuna/efficient-node/blob/main/400-node-streams.adoc)
+[^12]: [Profiler](https://nodejs.org/en/docs/guides/simple-profiling/)
+[^13]: [ts-jest](https://kulshekhar.github.io/ts-jest/docs/guides/esm-support)
+[^14]: [使用 ESLint, Prettier, Husky, Lint-staged 以及 Commitizen 提升專案品質及一致性](https://medium.com/@danielhu95/set-up-eslint-pipeline-zh-tw-990d7d9eb68e)
+[^15]: [Best practices for creating a modern npm package](https://snyk.io/blog/best-practices-create-modern-npm-package/)
+[^16]: [Github Actions](https://github.com/artyomliou/msgpack-nodejs/actions)
