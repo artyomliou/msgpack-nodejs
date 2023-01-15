@@ -154,7 +154,7 @@ Runs on node.js 16 & laptop with R5-5625U.
 - To maximize performance of array, use [pre-allocated array](src/decoder/decoder.ts#L11-L12). [^3]
 - To maximize performance, use [generator function](src/decoder/parse-buffer.ts)
 - To maximize performance of string encoding, string are encoded in [StringBuffer](src/encoder/string-buffer.ts) with [encodeInto()](https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encodeInto) to prevent unnecessary copying. Then these encoded content will be referenced by `subarray()` for writing and caching. [^4]
-- To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes. [^2]
+- To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes. [^3]
 - To avoid syntax penalty of [private class fields](https://v8.dev/blog/faster-class-features) under node.js 18, use [TypeScript's syntax](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats) instead.
 
 ## Lessons learned
@@ -164,7 +164,7 @@ Runs on node.js 16 & laptop with R5-5625U.
   - `BigInt` operators [^6]
   - `left shift` and `right shift` [^7] [^8]
   - Private class features [^9]
-  - Pre-allocated array [^2]
+  - Pre-allocated array [^3]
   - UTF-8 encoding/decoding [^10]
   - Node.js transform stream [^11]
 - Node.js
