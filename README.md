@@ -1,11 +1,10 @@
 # msgpack-nodejs
 
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/artyomliou/msgpack-nodejs/node.js.yml)
-![Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/artyomliou/msgpack-nodejs)
 ![node-current](https://img.shields.io/node/v/msgpack-nodejs)
-![GitHub top language](https://img.shields.io/github/languages/top/artyomliou/msgpack-nodejs)
-![Lines of code](https://img.shields.io/tokei/lines/github/artyomliou/msgpack-nodejs)
-![npm bundle size](https://img.shields.io/bundlephobia/minzip/msgpack-nodejs)
+![Vulnerabilities](https://img.shields.io/snyk/vulnerabilities/github/artyomliou/msgpack-nodejs)
+[![Maintainability](https://api.codeclimate.com/v1/badges/d0d52768bb6be694536e/maintainability)](https://codeclimate.com/github/artyomliou/msgpack-nodejs/maintainability)
+[![Test Coverage](https://api.codeclimate.com/v1/badges/d0d52768bb6be694536e/test_coverage)](https://codeclimate.com/github/artyomliou/msgpack-nodejs/test_coverage)
 
 Yet another javascript/nodejs implementation of [MsgPack Spec](https://github.com/msgpack/msgpack/blob/master/spec.md).  
 The purpose behind is learning by doing, which focuses on modern tools/techniques of nodejs/typescript ecosystem.
