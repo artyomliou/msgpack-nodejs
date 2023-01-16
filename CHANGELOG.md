@@ -1,5 +1,11 @@
 # Versions
 
+## 1.3.9
+
+- optimize(decoder): huge improvement by reducing GC
+- fix: code of `typed-value-resolver.ts` was merged into `decoder.ts`
+- style: update var naming & add comments
+
 ## 1.3.8
 
 - optimize(encoder): encode string in specific buffer

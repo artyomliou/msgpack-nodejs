@@ -102,25 +102,25 @@ Runs on node.js 16 & laptop with R5-5625U.
 
 | operation                                                          |      op |   ms |       op/s |
 | ------------------------------------------------------------------ | ------: | ---: | ---------: |
-| buf = Buffer(JSON.stringify(obj));                                 |  999100 | 5000 |     199820 |
-| obj = JSON.parse(buf);                                             | 1274300 | 5000 |     254860 |
-| buf = require("msgpack-lite").encode(obj);                         |  655000 | 5000 |     131000 |
-| obj = require("msgpack-lite").decode(buf);                         |  393500 | 5000 |      78700 |
-| buf = Buffer(require("msgpack.codec").msgpack.pack(obj));          |  715000 | 5000 |     143000 |
-| obj = require("msgpack.codec").msgpack.unpack(buf);                |  400800 | 5000 |      80160 |
-| buf = require("msgpack-js-v5").encode(obj);                        |  278600 | 5001 |      55708 |
-| obj = require("msgpack-js-v5").decode(buf);                        |  540900 | 5000 |     108180 |
-| buf = require("msgpack-js").encode(obj);                           |  268600 | 5000 |      53720 |
-| obj = require("msgpack-js").decode(buf);                           |  554400 | 5000 |     110880 |
-| buf = require("msgpack5")().encode(obj);                           |  145800 | 5001 |      29154 |
-| obj = require("msgpack5")().decode(buf);                           |  235600 | 5000 |      47120 |
-| buf = require("notepack").encode(obj);                             | 1057300 | 5000 |     211460 |
-| obj = require("notepack").decode(buf);                             |  653200 | 5000 |     130639 |
-| obj = require("msgpack-unpack").decode(buf);                       |  165600 | 5002 |      33106 |
-| **buf = require("msgpack-nodejs").encode(obj);** (Run in sequence) | 1100700 | 5000 | **220140** |
-| **obj = require("msgpack-nodejs").decode(buf);** (Run in sequence) |  629100 | 5000 | **125820** |
-| **buf = require("msgpack-nodejs").encode(obj);** (Run exclusively) | 1325000 | 5000 | **265000** |
-| **obj = require("msgpack-nodejs").decode(buf);** (Run exclusively) |  622800 | 5000 | **124560** |
+| buf = Buffer(JSON.stringify(obj));                                 | 1021200 | 5000 |     204240 |
+| obj = JSON.parse(buf);                                             | 1279500 | 5000 |     255900 |
+| buf = require("msgpack-lite").encode(obj);                         |  685800 | 5000 |     137160 |
+| obj = require("msgpack-lite").decode(buf);                         |  389800 | 5001 |      77944 |
+| buf = Buffer(require("msgpack.codec").msgpack.pack(obj));          |  713600 | 5000 |     142720 |
+| obj = require("msgpack.codec").msgpack.unpack(buf);                |  401300 | 5001 |      80243 |
+| buf = require("msgpack-js-v5").encode(obj);                        |  284400 | 5000 |      56880 |
+| obj = require("msgpack-js-v5").decode(buf);                        |  544600 | 5000 |     108920 |
+| buf = require("msgpack-js").encode(obj);                           |  277100 | 5001 |      55408 |
+| obj = require("msgpack-js").decode(buf);                           |  559800 | 5000 |     111960 |
+| buf = require("msgpack5")().encode(obj);                           |  147700 | 5001 |      29534 |
+| obj = require("msgpack5")().decode(buf);                           |  239500 | 5000 |      47900 |
+| buf = require("notepack").encode(obj);                             | 1041500 | 5000 |     208300 |
+| obj = require("notepack").decode(buf);                             |  671300 | 5000 |     134260 |
+| obj = require("msgpack-unpack").decode(buf);                       |  163400 | 5001 |      32673 |
+| **buf = require("msgpack-nodejs").encode(obj);** (Run in sequence) | 1148900 | 5000 | **229780** |
+| **obj = require("msgpack-nodejs").decode(buf);** (Run in sequence) |  777500 | 5000 | **155500** |
+| **buf = require("msgpack-nodejs").encode(obj);** (Run exclusively) | 1321900 | 5000 | **264380** |
+| **obj = require("msgpack-nodejs").decode(buf);** (Run exclusively) |  805400 | 5000 | **161080** |
 
 ---
 
@@ -128,11 +128,11 @@ Runs on node.js 16 & laptop with R5-5625U.
 
 ## Encode
 
-[Encoder](src/encoder/encoder.ts) uses a recursive function `match()` to match JSON structure (primitive value, object, array or nested), and pushes anything encoded into [ByteArray](src/encoder/byte-array.ts) that responsible for allocating buffer. Encoded string may be cached in [LruCache](src/encoder/lru-cache.ts).
+[Encoder](src/encoder/encoder.ts) uses a recursive function `match()` to match JSON structure (primitive value, object, array or nested), and pushes anything encoded into [ByteArray](src/encoder/byte-array.ts) that responsible for allocating buffer. Encoded string will be written in [StringBuffer](src/encoder/string-buffer.ts) first and cached in [LruCache](src/encoder/lru-cache.ts).
 
 ## Decode
 
-[Decoder](src/decoder/decoder.ts) uses [parseBuffer()](src/decoder/parse-buffer.ts) to read every value out, and push them into [StructBuilder](src/decoder/struct-builder.ts) to rebuild whole JSON object. For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [prefix trie](src/decoder/prefix-trie.ts).
+[Decoder](src/decoder/decoder.ts) uses `parseBuffer()` to read every value out, and push them into [StructBuilder](src/decoder/struct-builder.ts) to rebuild whole JSON object. For string less than 200 bytes, use pure JS [utf8Decode()](src/decoder/utf8-decode.ts), then cache in [prefix trie](src/decoder/prefix-trie.ts).
 
 ## Optimization strategies:
 
@@ -141,7 +141,6 @@ Runs on node.js 16 & laptop with R5-5625U.
 - To improve encoding performance, [LruCache](src/encoder/lru-cache.ts) was used for caching encoded string and its header.
 - To improve decoding peformance, [prefix trie](src/decoder/prefix-trie.ts) was deployed for Uint8Array caching.
 - To avoid evicting, map-key caching and string caching were separated.
-- To reduce memory usage, cache [Object/array descriptor](src/decoder/parse-buffer.ts#L69-L91)
 
 ##### ArrayBuffer / TypedArray
 
@@ -152,9 +151,9 @@ Runs on node.js 16 & laptop with R5-5625U.
 ##### Node.js
 
 - To maximize performance of array, use [pre-allocated array](src/decoder/decoder.ts#L11-L12). [^3]
-- To maximize performance, use [generator function](src/decoder/parse-buffer.ts)
 - To maximize performance of string encoding, string are encoded in [StringBuffer](src/encoder/string-buffer.ts) with [encodeInto()](https://developer.mozilla.org/en-US/docs/Web/API/TextEncoder/encodeInto) to prevent unnecessary copying. Then these encoded content will be referenced by `subarray()` for writing and caching. [^4]
 - To avoid overhead of `TextDecoder()`, [decode UTF-8 bytes with pure JS](src/decoder/utf8-decode.ts) when less than 200 bytes. [^3]
+- To avoid GC overhead in decoder, every parsed typed value will be passed into `builder.insertValue()` directly. [^17]
 - To avoid syntax penalty of [private class fields](https://v8.dev/blog/faster-class-features) under node.js 18, use [TypeScript's syntax](https://www.typescriptlang.org/docs/handbook/2/classes.html#caveats) instead.
 
 ## Lessons learned
@@ -193,3 +192,4 @@ Runs on node.js 16 & laptop with R5-5625U.
 [^14]: [使用 ESLint, Prettier, Husky, Lint-staged 以及 Commitizen 提升專案品質及一致性](https://medium.com/@danielhu95/set-up-eslint-pipeline-zh-tw-990d7d9eb68e)
 [^15]: [Best practices for creating a modern npm package](https://snyk.io/blog/best-practices-create-modern-npm-package/)
 [^16]: [Github Actions](https://github.com/artyomliou/msgpack-nodejs/actions)
+[^17]: [Memory Diagnostics - Using GC Trace](https://nodejs.org/en/docs/guides/diagnostics/memory/using-gc-traces/)

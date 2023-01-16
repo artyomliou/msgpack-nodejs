@@ -1,6 +1,6 @@
 import { optIn as byteArrayOptIn } from "./encoder/byte-array.js"
 import { optIn as encoderOptIn } from "./encoder/encoder.js"
-import { optIn as parseBufferOptIn } from "./decoder/parse-buffer.js"
+import { optIn as parseBufferOptIn } from "./decoder/decoder.js"
 
 export function applyOptions(opt: Options) {
   byteArrayOptIn(opt)

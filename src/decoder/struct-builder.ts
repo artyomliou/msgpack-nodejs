@@ -1,4 +1,5 @@
-import { DecodeOutput } from "src/types"
+import { DecodeOutput } from "../types.js"
+import SingleValueError from "./single-value-error.js"
 
 type Struct = Array<unknown> | Record<string, unknown>
 type MapKey = string | null
@@ -13,7 +14,9 @@ export default class StructBuilder {
    * Insert new struct in current struct, then replace reference
    */
   newStruct(val: Struct, size = 0) {
-    this.insertValue(val)
+    if (this.struct) {
+      this.insertValue(val)
+    }
 
     // Optimize: We dont have to push and pop this empty struct
     if (this.struct && size === 0) {
@@ -40,9 +43,9 @@ export default class StructBuilder {
   /**
    * Insert any value into current struct
    */
-  insertValue(val: DecodeOutput): boolean {
+  insertValue(val: DecodeOutput) {
     if (!this.struct) {
-      return false
+      throw new SingleValueError(val)
     } else if (this.struct instanceof Array) {
       this.struct[this.struct.length - this.elementsLeft] = val
       this.elementsLeft--
@@ -60,7 +63,6 @@ export default class StructBuilder {
         this.mapKey = val
       }
     }
-    return true
   }
 
   /**
