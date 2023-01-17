@@ -39,32 +39,6 @@ import { Options } from "../options.js"
 import { stringBuffer } from "./string-buffer.js"
 
 /**
- * Opt in caches
- */
-const mapKeyCache = new LruCache<string>("Map-key LruCache", 30)
-const stringCache = new LruCache<string>("String LruCache", 100)
-let mapkeyCacheEnabled = true
-let stringCacheEnabled = true
-
-export function optIn(opt: Options) {
-  // mapkeyCache
-  if (typeof opt?.encoder?.mapKeyCache?.enabled !== "undefined") {
-    mapkeyCacheEnabled = opt.encoder.mapKeyCache.enabled
-  }
-  if (typeof opt?.encoder?.mapKeyCache?.size !== "undefined") {
-    mapKeyCache.sizeLimit = opt.encoder.mapKeyCache.size
-  }
-
-  // stringCache
-  if (typeof opt?.encoder?.stringCache?.enabled !== "undefined") {
-    stringCacheEnabled = opt.encoder.stringCache.enabled
-  }
-  if (typeof opt?.encoder?.stringCache?.size !== "undefined") {
-    stringCache.sizeLimit = opt.encoder.stringCache.size
-  }
-}
-
-/**
  * Encode as MessagePack format
  */
 export default function msgPackEncode(src: EncodableValue): Uint8Array {
@@ -176,51 +150,61 @@ function encodeFloat(byteArray: ByteArray, number: number): void {
   byteArray.writeFloat64(number)
 }
 
-function encodeMapKey(byteArray: ByteArray, string: string): void {
-  // If cache is enabled and hit, the cost of encoding, copying between buffer can be save
-  if (mapkeyCacheEnabled) {
-    const buffer = mapKeyCache.get(string)
-    if (buffer) {
-      byteArray.append(buffer)
-      return
-    }
+/**
+ * string encoding & caching
+ */
+const mapKeyCache = new LruCache<string>("Map-key LruCache", 30)
+const stringCache = new LruCache<string>("String LruCache", 100)
+let encodeMapKey = encodeStringFactory(true, mapKeyCache)
+let encodeString = encodeStringFactory(true, stringCache)
+
+export function optIn(opt: Options) {
+  // mapkeyCache
+  if (typeof opt?.encoder?.mapKeyCache?.enabled !== "undefined") {
+    encodeMapKey = encodeStringFactory(
+      opt.encoder.mapKeyCache.enabled,
+      mapKeyCache
+    )
+  }
+  if (typeof opt?.encoder?.mapKeyCache?.size !== "undefined") {
+    mapKeyCache.sizeLimit = opt.encoder.mapKeyCache.size
   }
 
-  // If cache is not enabled / cache is not hit
-  const encoded = stringBuffer.encodeString(string)
-  const headerBytes = writeStringHeader(byteArray, encoded.byteLength)
-  byteArray.append(encoded)
-
-  // Cache header and encoded string at once
-  if (mapkeyCacheEnabled) {
-    mapKeyCache.set(
-      string,
-      byteArray.subarrayBackward(headerBytes + encoded.byteLength)
+  // stringCache
+  if (typeof opt?.encoder?.stringCache?.enabled !== "undefined") {
+    encodeString = encodeStringFactory(
+      opt.encoder.stringCache.enabled,
+      stringCache
     )
+  }
+  if (typeof opt?.encoder?.stringCache?.size !== "undefined") {
+    stringCache.sizeLimit = opt.encoder.stringCache.size
   }
 }
 
-function encodeString(byteArray: ByteArray, string: string): void {
-  // If cache is enabled and hit, the cost of encoding, copying between buffer can be save
-  if (stringCacheEnabled) {
-    const buffer = stringCache.get(string)
-    if (buffer) {
-      byteArray.append(buffer)
-      return
+function encodeStringFactory(cacheEnabled: boolean, cache: LruCache<string>) {
+  return (byteArray: ByteArray, string: string) => {
+    // If cache is enabled and hit, the cost of encoding, copying between buffer can be save
+    if (cacheEnabled) {
+      const buffer = cache.get(string)
+      if (buffer) {
+        byteArray.append(buffer)
+        return
+      }
     }
-  }
 
-  // If cache is not enabled / cache is not hit
-  const encoded = stringBuffer.encodeString(string)
-  const headerBytes = writeStringHeader(byteArray, encoded.byteLength)
-  byteArray.append(encoded)
+    // If cache is not enabled / cache is not hit
+    const encoded = stringBuffer.encodeString(string)
+    const headerBytes = writeStringHeader(byteArray, encoded.byteLength)
+    byteArray.append(encoded)
 
-  // Cache header and encoded string at once
-  if (stringCacheEnabled) {
-    stringCache.set(
-      string,
-      byteArray.subarrayBackward(headerBytes + encoded.byteLength)
-    )
+    // Cache header and encoded string at once
+    if (cacheEnabled) {
+      cache.set(
+        string,
+        byteArray.subarrayBackward(headerBytes + encoded.byteLength)
+      )
+    }
   }
 }
 
