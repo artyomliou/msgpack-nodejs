@@ -279,46 +279,47 @@ export function parseBuffer(
 }
 
 /**
- * Opt in uint8-tree cache
+ * Text decoding & options
  */
-let shortStringCacheEnabled = true
-let shortStringCacheLessThan = 10
-let jsUtf8DecodeEnabled = true
-let jsUtf8DecodeLessThan = 200
-export function optIn(opt: Options) {
-  // shortStringCache
-  if (typeof opt?.decoder?.shortStringCache?.enabled !== "undefined") {
-    shortStringCacheEnabled = opt.decoder.shortStringCache.enabled
-  }
-  if (typeof opt?.decoder?.shortStringCache?.lessThan !== "undefined") {
-    shortStringCacheLessThan = opt.decoder.shortStringCache.lessThan
-  }
-
-  // jsUtf8Decode
-  if (typeof opt?.decoder?.jsUtf8Decode?.enabled !== "undefined") {
-    jsUtf8DecodeEnabled = opt.decoder.jsUtf8Decode.enabled
-  }
-  if (typeof opt?.decoder?.jsUtf8Decode?.lessThan !== "undefined") {
-    jsUtf8DecodeLessThan = opt.decoder.jsUtf8Decode.lessThan
-  }
-}
-
 const trie = new PrefixTrie("Short key trie")
 const textDecoder = new TextDecoder()
+let decodeStrWithFlexibleSize = decodeStrFactory(true, 10, true, 200)
 
-function decodeStrWithFlexibleSize(strBuf: Uint8Array): string {
-  if (shortStringCacheEnabled && strBuf.byteLength < shortStringCacheLessThan) {
-    let result = trie.search(strBuf)
-    if (result) {
+export function applyOptions(opt: Options) {
+  decodeStrWithFlexibleSize = decodeStrFactory(
+    opt.decoder.shortStringCache.enabled,
+    opt.decoder.shortStringCache.lessThan,
+    opt.decoder.jsUtf8Decode.enabled,
+    opt.decoder.jsUtf8Decode.lessThan
+  )
+}
+
+function decodeStrFactory(
+  shortStringCacheEnabled: boolean,
+  shortStringCacheLessThan: number,
+  jsUtf8DecodeEnabled: boolean,
+  jsUtf8DecodeLessThan: number
+) {
+  return (strBuf: Uint8Array) => {
+    if (
+      shortStringCacheEnabled &&
+      strBuf.byteLength < shortStringCacheLessThan
+    ) {
+      let result = trie.search(strBuf)
+      if (result) {
+        return result
+      }
+      result = utf8Decode(strBuf)
+      trie.insert(strBuf, result)
       return result
+    } else if (
+      jsUtf8DecodeEnabled &&
+      strBuf.byteLength < jsUtf8DecodeLessThan
+    ) {
+      return utf8Decode(strBuf)
+    } else {
+      return textDecoder.decode(strBuf)
     }
-    result = utf8Decode(strBuf)
-    trie.insert(strBuf, result)
-    return result
-  } else if (jsUtf8DecodeEnabled && strBuf.byteLength < jsUtf8DecodeLessThan) {
-    return utf8Decode(strBuf)
-  } else {
-    return textDecoder.decode(strBuf)
   }
 }
 

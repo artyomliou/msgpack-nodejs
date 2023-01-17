@@ -85,26 +85,18 @@ const stringCache = new LruCache<string>("String LruCache", 100)
 let encodeMapKey = encodeStringFactory(true, mapKeyCache)
 let encodeString = encodeStringFactory(true, stringCache)
 
-export function optIn(opt: Options) {
+export function applyOptions(opt: Options) {
   // mapkeyCache
-  if (typeof opt?.encoder?.mapKeyCache?.enabled !== "undefined") {
-    encodeMapKey = encodeStringFactory(
-      opt.encoder.mapKeyCache.enabled,
-      mapKeyCache
-    )
-  }
-  if (typeof opt?.encoder?.mapKeyCache?.size !== "undefined") {
-    mapKeyCache.sizeLimit = opt.encoder.mapKeyCache.size
-  }
+  encodeMapKey = encodeStringFactory(
+    opt.encoder.mapKeyCache.enabled,
+    mapKeyCache
+  )
+  mapKeyCache.sizeLimit = opt.encoder.mapKeyCache.size
 
   // stringCache
-  if (typeof opt?.encoder?.stringCache?.enabled !== "undefined") {
-    encodeString = encodeStringFactory(
-      opt.encoder.stringCache.enabled,
-      stringCache
-    )
-  }
-  if (typeof opt?.encoder?.stringCache?.size !== "undefined") {
-    stringCache.sizeLimit = opt.encoder.stringCache.size
-  }
+  encodeString = encodeStringFactory(
+    opt.encoder.stringCache.enabled,
+    stringCache
+  )
+  stringCache.sizeLimit = opt.encoder.stringCache.size
 }

@@ -16,10 +16,8 @@ interface Stat {
 }
 
 // Options
-export function optIn(opt: Options) {
-  if (typeof opt?.encoder?.byteArray?.base !== "undefined") {
-    bufferAllocator.base = opt.encoder.byteArray.base
-  }
+export function applyOptions(opt: Options) {
+  bufferAllocator.base = opt.encoder.byteArray.base
 }
 
 /**
