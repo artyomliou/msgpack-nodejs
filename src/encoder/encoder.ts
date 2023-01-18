@@ -40,6 +40,14 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
     } else {
       encodeFloat(byteArray, val)
     }
+  } else if (typeof val === "boolean") {
+    if (val) {
+      byteArray.writeUint8(BOOL_TRUE)
+    } else {
+      byteArray.writeUint8(BOOL_FALSE)
+    }
+  } else if (typeof val === "bigint") {
+    encodeBigint(byteArray, val)
   } else if (val instanceof Array) {
     encodeArray(byteArray, val.length)
     for (const element of val) {
@@ -59,10 +67,6 @@ function match(byteArray: ByteArray, val: EncodableValue): void {
     }
   } else if (val === null) {
     byteArray.writeUint8(NIL)
-  } else if (typeof val === "boolean") {
-    byteArray.writeUint8(val ? BOOL_TRUE : BOOL_FALSE)
-  } else if (typeof val === "bigint") {
-    encodeBigint(byteArray, val)
   } else if (val instanceof Uint8Array) {
     encodeBin(byteArray, val)
   } else if (val?.constructor) {
