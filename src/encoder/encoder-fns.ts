@@ -90,7 +90,7 @@ export function encodeStringFactory(
   cacheEnabled: boolean,
   cache: LruCache<string>
 ) {
-  return (byteArray: ByteArray, string: string) => {
+  return function encodeStringClosure(byteArray: ByteArray, string: string) {
     // If cache is enabled and hit, the cost of encoding, copying between buffer can be save
     if (cacheEnabled) {
       const buffer = cache.get(string)

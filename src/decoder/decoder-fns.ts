@@ -62,7 +62,7 @@ export function parseBuffer(
     if (firstByte >= 0xa0 && firstByte <= 0xbf) {
       dataByte = firstByte - 0xa0
       builder.insertValue(
-        decodeStrWithFlexibleSize(buffer.subarray(pos + 0, pos + 0 + dataByte))
+        decodeStr(buffer.subarray(pos + 0, pos + 0 + dataByte))
       )
       pos += 0 + dataByte
       continue READ_NEXT
@@ -86,9 +86,7 @@ export function parseBuffer(
       case STR8_PREFIX:
         dataByte = view.getUint8(pos)
         builder.insertValue(
-          decodeStrWithFlexibleSize(
-            buffer.subarray(pos + 1, pos + 1 + dataByte)
-          )
+          decodeStr(buffer.subarray(pos + 1, pos + 1 + dataByte))
         )
         pos += 1 + dataByte
         continue READ_NEXT
@@ -96,9 +94,7 @@ export function parseBuffer(
       case STR16_PREFIX:
         dataByte = view.getUint16(pos, false)
         builder.insertValue(
-          decodeStrWithFlexibleSize(
-            buffer.subarray(pos + 2, pos + 2 + dataByte)
-          )
+          decodeStr(buffer.subarray(pos + 2, pos + 2 + dataByte))
         )
         pos += 2 + dataByte
         continue READ_NEXT
@@ -106,9 +102,7 @@ export function parseBuffer(
       case STR32_PREFIX:
         dataByte = view.getUint32(pos, false)
         builder.insertValue(
-          decodeStrWithFlexibleSize(
-            buffer.subarray(pos + 4, pos + 4 + dataByte)
-          )
+          decodeStr(buffer.subarray(pos + 4, pos + 4 + dataByte))
         )
         pos += 4 + dataByte
         continue READ_NEXT
@@ -283,10 +277,10 @@ export function parseBuffer(
  */
 const trie = new PrefixTrie("Short key trie")
 const textDecoder = new TextDecoder()
-let decodeStrWithFlexibleSize = decodeStrFactory(true, 10, true, 200)
+let decodeStr = decodeStrFactory(true, 10, true, 200)
 
 export function applyOptions(opt: Options) {
-  decodeStrWithFlexibleSize = decodeStrFactory(
+  decodeStr = decodeStrFactory(
     opt.decoder.shortStringCache.enabled,
     opt.decoder.shortStringCache.lessThan,
     opt.decoder.jsUtf8Decode.enabled,
@@ -300,7 +294,7 @@ function decodeStrFactory(
   jsUtf8DecodeEnabled: boolean,
   jsUtf8DecodeLessThan: number
 ) {
-  return (strBuf: Uint8Array) => {
+  return function decodeStrClosure(strBuf: Uint8Array) {
     if (
       shortStringCacheEnabled &&
       strBuf.byteLength < shortStringCacheLessThan
